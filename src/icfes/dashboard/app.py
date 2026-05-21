@@ -1,44 +1,61 @@
 import streamlit as st
+
 from icfes.core.query_service import make_query_service
+from icfes.dashboard.components.animations import render_animations
+from icfes.dashboard.components.navbar import render_navbar
+from icfes.dashboard.components.sidebar import render_sidebar
+from icfes.dashboard.components.theme import apply_theme
+from icfes.dashboard.pages import acerca_de, analisis, comparativa, inicio, tendencias
 
-st.set_page_config(page_title="ICFES Saber 11", layout="wide")
-st.title("Análisis ICFES Saber 11 — 2015 a 2025")
+# ── Page config ───────────────────────────────────────────────────────────────
+st.set_page_config(
+    page_title="ICFES Analytics | Saber 11",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="collapsed",
+)
+
+# ── Global UI chrome ──────────────────────────────────────────────────────────
+apply_theme()
+render_navbar()
+render_animations()
 
 
+# ── Service & Sidebar filters ─────────────────────────────────────────────────
 @st.cache_resource
 def get_service():
     return make_query_service()
 
 
 svc = get_service()
+where_clause, sel_anos, sel_deptos, sel_genero, sel_naturaleza = render_sidebar(svc)
 
-col1, col2 = st.columns(2)
+st.markdown(
+    """
+    <style>
+        div[data-testid="stMarkdownContainer"] {
+            padding: 8px 12px;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+# ── Main navigation tabs ──────────────────────────────────────────────────────
+tab_inicio, tab_analisis, tab_comparativa, tab_tendencias, tab_acerca = st.tabs(
+    ["🏠 Inicio", "📊 Análisis", "⚖️ Comparativa", "📈 Tendencias", "ℹ️ Acerca de"]
+)
 
-with col1:
-    st.subheader("Promedio global por año")
-    df_global = svc.query_df("""
-        SELECT
-            ano,
-            AVG(CAST(punt_global AS DOUBLE)) AS promedio_global,
-            COUNT(*) AS total_estudiantes
-        FROM {parquet}
-        GROUP BY ano
-        ORDER BY ano
-    """)
-    st.line_chart(df_global.set_index("ano")["promedio_global"])
-    st.dataframe(df_global, use_container_width=True)
+with tab_inicio:
+    inicio.render()
 
-with col2:
-    st.subheader("Puntajes por área")
-    df_areas = svc.query_df("""
-        SELECT
-            ano,
-            AVG(CAST(punt_matematicas AS DOUBLE))        AS matematicas,
-            AVG(CAST(punt_lectura_critica AS DOUBLE))    AS lectura_critica,
-            AVG(CAST(punt_c_naturales AS DOUBLE))        AS c_naturales,
-            AVG(CAST(punt_sociales_ciudadanas AS DOUBLE)) AS sociales
-        FROM {parquet}
-        GROUP BY ano
-        ORDER BY ano
-    """)
-    st.line_chart(df_areas.set_index("ano"))
+with tab_analisis:
+    analisis.render(svc, where_clause, sel_anos, sel_deptos, sel_genero, sel_naturaleza)
+
+with tab_comparativa:
+    comparativa.render()
+
+with tab_tendencias:
+    tendencias.render()
+
+with tab_acerca:
+    acerca_de.render()

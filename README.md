@@ -60,9 +60,22 @@ graph TD
 │       ├── core/          # Capa central (Lógica de dominio / QueryService)
 │       │   ├── __init__.py
 │       │   └── query_service.py
-│       ├── dashboard/     # Fase 1: Aplicación Streamlit
+│       ├── dashboard/     # Fase 1: Aplicación Streamlit (arquitectura modular)
 │       │   ├── __init__.py
-│       │   └── app.py
+│       │   ├── app.py              # Orquestador delgado: config + tabs + routing
+│       │   ├── components/
+│       │   │   ├── theme.py        # CSS global + dark_layout()
+│       │   │   ├── navbar.py       # render_navbar()
+│       │   │   ├── animations.py   # render_animations() — partículas + anime.js
+│       │   │   └── sidebar.py      # render_sidebar(svc) → filtros globales
+│       │   ├── data/
+│       │   │   └── mock.py         # Datos de demostración (mock)
+│       │   └── pages/
+│       │       ├── inicio.py       # Tab "Inicio"
+│       │       ├── analisis.py     # Tab "Análisis" (datos reales via DuckDB)
+│       │       ├── comparativa.py  # Tab "Comparativa"
+│       │       ├── tendencias.py   # Tab "Tendencias"
+│       │       └── acerca_de.py    # Tab "Acerca de"
 │       └── etl/           # Pipeline de procesamiento de microdatos
 │           ├── __init__.py
 │           ├── __main__.py
@@ -189,7 +202,63 @@ Para exponer datos a clientes externos (como un frontend React):
        return df.to_dict(orient="records")
    ```
 
-### 4. Transición a Nube (Fase 2)
+### 4. Agregar o Modificar el Dashboard (Páginas y Componentes)
+
+El dashboard usa una arquitectura de **componentes + páginas**. Cada tab es un módulo independiente con una función `render()`.
+
+#### Agregar un nuevo tab/menú
+
+1. Crea `src/icfes/dashboard/pages/mi_pagina.py`:
+   ```python
+   import streamlit as st
+   from icfes.dashboard.components.theme import dark_layout
+
+   def render():
+       st.markdown("## Mi nueva sección")
+       # ... tu contenido aquí
+   ```
+
+2. Registra el tab en `app.py`:
+   ```python
+   from icfes.dashboard.pages import mi_pagina
+   # ...
+   tab_nuevo, = st.tabs(["🆕 Mi Página"])  # añadir al st.tabs existente
+   # ...
+   with tab_nuevo:
+       mi_pagina.render()
+   ```
+
+3. Si el tab necesita datos reales, recibe `svc` y `where_clause` como parámetros:
+   ```python
+   def render(svc, where_clause: str):
+       df = svc.query_df(f"SELECT ... FROM {{parquet}} {where_clause}")
+   ```
+
+#### Modificar estilos globales
+
+- CSS global → `components/theme.py` (variable `CSS`)
+- Preset Plotly oscuro → `components/theme.py` función `dark_layout(**extra)`
+- Navbar → `components/navbar.py`
+- Animaciones (partículas / anime.js) → `components/animations.py`
+
+#### Agregar datos de demostración (mock)
+
+Añade funciones en `data/mock.py` y usa `@st.cache_data` si son costosas de generar:
+```python
+def mock_nueva_data() -> pd.DataFrame:
+    return pd.DataFrame(...)
+```
+
+#### Modificar los filtros globales del sidebar
+
+Edita `components/sidebar.py`. La función `render_sidebar(svc)` retorna
+`(where_clause, sel_anos, sel_deptos, sel_genero, sel_naturaleza)`.
+Para agregar un nuevo filtro, añade el widget dentro del `with st.sidebar:` y
+actualiza la lista `filters` con la cláusula SQL correspondiente.
+
+---
+
+### 5. Transición a Nube (Fase 2)
 
 Para mover el backend analítico a producción sin tocar el código fuente:
 
