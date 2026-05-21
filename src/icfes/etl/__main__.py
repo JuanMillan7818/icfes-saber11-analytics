@@ -1,7 +1,7 @@
 from icfes.etl.pipeline import make_normalization
 
 
-def main():
+def main() -> None:
     make_normalization()
 
 

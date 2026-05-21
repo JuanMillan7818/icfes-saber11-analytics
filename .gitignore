@@ -15,3 +15,14 @@ files/*
 # UV
 uv.lock
 .env
+
+# Context file
+.context
+
+# Agent skills
+.agents
+.claude
+skills-lock.json
+
+# Prompt
+prompt.md

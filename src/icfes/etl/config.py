@@ -1,5 +1,6 @@
-PARQUET_PATH = "files/parquet"
-DATA_PATH_TEXT = "../Bases nacionales 2015-2026"
+from icfes.settings import DATA_PATH_TEXT, PARQUET_PATH
+
+__all__ = ["DATA_PATH_TEXT", "PARQUET_PATH", "MAP_ATTR_BASE", "MAP_ATTR_ICFES"]
 
 MAP_ATTR_BASE = {
     "periodo": "periodo",
@@ -25,21 +26,15 @@ MAP_ATTR_BASE = {
     "estu_discapacidad": "estu_discapacidad",
     "estu_fechanacimiento": "estu_fechanacimiento",
     "estu_genero": "estu_genero",
-    # "estu_horassemanatrabaja": "estu_horassemanatrabaja",
     "estu_mcpio_reside": "estu_mcpio_reside",
     "estu_nse_establecimiento": "estu_nse_establecimiento",
     "estu_nse_individual": "estu_nse_individual",
     "estu_pais_reside": "estu_pais_reside",
-    # "estu_repite": "estu_repite",
     "estu_tieneetnia": "estu_tieneetnia",
-    # "estu_tiporemuneracion": "estu_tiporemuneracion",
     "fami_educacionmadre": "fami_educacionmadre",
     "fami_educacionpadre": "fami_educacionpadre",
     "fami_estratovivienda": "fami_estratovivienda",
-    # "fami_situacioneconomica": "fami_situacioneconomica",
     "fami_tieneinternet": "fami_tieneinternet",
-    # "fami_trabajolabormadre": "fami_trabajolabormadre",
-    # "fami_trabajolaborpadre": "fami_trabajolaborpadre",
     "punt_c_naturales": "punt_c_naturales",
     "punt_global": "punt_global",
     "punt_ingles": "punt_ingles",
@@ -47,26 +42,14 @@ MAP_ATTR_BASE = {
     "punt_matematicas": "punt_matematicas",
     "punt_sociales_ciudadanas": "punt_sociales_ciudadanas",
     "estu_grupoetnia": "estu_etnia",
-    # "fami_numhermanos": "fami_numhermanos",
-    # "estu_comunidadcampesina": "estu_comunidadcampesina",
 }
 
 MAP_ATTR_ICFES = {
-    "Examen_Saber_11_20151": {
-        **MAP_ATTR_BASE,
-    },
-    "Examen_Saber_11_20152": {
-        **MAP_ATTR_BASE,
-    },
-    "Examen_Saber_11_20161": {
-        **MAP_ATTR_BASE,
-    },
-    "Examen_Saber_11_20162": {
-        **MAP_ATTR_BASE,
-    },
-    "Examen_Saber_11_20171": {
-        **MAP_ATTR_BASE,
-    },
+    "Examen_Saber_11_20151": {**MAP_ATTR_BASE},
+    "Examen_Saber_11_20152": {**MAP_ATTR_BASE},
+    "Examen_Saber_11_20161": {**MAP_ATTR_BASE},
+    "Examen_Saber_11_20162": {**MAP_ATTR_BASE},
+    "Examen_Saber_11_20171": {**MAP_ATTR_BASE},
     "Examen_Saber_11_20172": {**MAP_ATTR_BASE},
     "Examen_Saber_11_20181": {**MAP_ATTR_BASE},
     "Examen_Saber_11_20182": {**MAP_ATTR_BASE},
@@ -79,24 +62,9 @@ MAP_ATTR_ICFES = {
     "Examen_Saber_11_20221": {**MAP_ATTR_BASE},
     "Examen_Saber_11_20222": {**MAP_ATTR_BASE},
     "Examen_Saber_11_20231": {**MAP_ATTR_BASE},
-    "Examen_Saber_11_20232": {
-        **MAP_ATTR_BASE,
-        "estu_grupoetnia": "estu_grupoetnia",
-    },
-    "Examen_Saber_11_20241": {
-        **MAP_ATTR_BASE,
-        "estu_grupoetnia": "estu_grupoetnia",
-    },
-    "Examen_Saber_11_20242": {
-        **MAP_ATTR_BASE,
-        "estu_grupoetnia": "estu_grupoetnia",
-    },
-    "Examen_Saber_11_20251": {
-        **MAP_ATTR_BASE,
-        "estu_grupoetnia": "estu_grupoetnia",
-    },
-    "Examen_Saber_11_20252": {
-        **MAP_ATTR_BASE,
-        "estu_grupoetnia": "estu_grupoetnia",
-    },
+    "Examen_Saber_11_20232": {**MAP_ATTR_BASE, "estu_grupoetnia": "estu_grupoetnia"},
+    "Examen_Saber_11_20241": {**MAP_ATTR_BASE, "estu_grupoetnia": "estu_grupoetnia"},
+    "Examen_Saber_11_20242": {**MAP_ATTR_BASE, "estu_grupoetnia": "estu_grupoetnia"},
+    "Examen_Saber_11_20251": {**MAP_ATTR_BASE, "estu_grupoetnia": "estu_grupoetnia"},
+    "Examen_Saber_11_20252": {**MAP_ATTR_BASE, "estu_grupoetnia": "estu_grupoetnia"},
 }
