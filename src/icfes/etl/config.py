@@ -1,4 +1,12 @@
+from pathlib import Path
+
 from icfes.settings import DATA_PATH_TEXT, PARQUET_PATH
+
+_PROJECT_ROOT = Path(__file__).resolve().parents[3]
+DIVIPOLA_PATH = str(_PROJECT_ROOT / "files" / "dane" / "DIVIPOLA_dane.csv")
+
+COL_COD_MCPIO = "cole_cod_mcpio_ubicacion"
+COL_COD_DEPTO = "cole_cod_depto_ubicacion"
 
 __all__ = ["DATA_PATH_TEXT", "PARQUET_PATH", "MAP_ATTR_BASE", "MAP_ATTR_ICFES"]
 
@@ -11,9 +19,11 @@ MAP_ATTR_BASE = {
     "cole_caracter": "cole_caracter",
     "cole_codigo_icfes": "cole_codigo_icfes",
     "cole_depto_ubicacion": "cole_depto_ubicacion",
+    "cole_cod_depto_ubicacion": "cole_cod_depto_ubicacion",
     "cole_genero": "cole_genero",
     "cole_jornada": "cole_jornada",
     "cole_mcpio_ubicacion": "cole_mcpio_ubicacion",
+    "cole_cod_mcpio_ubicacion": "cole_cod_mcpio_ubicacion",
     "cole_naturaleza": "cole_naturaleza",
     "cole_nombre_establecimiento": "cole_nombre_establecimiento",
     "cole_nombre_sede": "cole_nombre_sede",
@@ -42,7 +52,12 @@ MAP_ATTR_BASE = {
     "punt_matematicas": "punt_matematicas",
     "punt_sociales_ciudadanas": "punt_sociales_ciudadanas",
     "estu_grupoetnia": "estu_etnia",
+    "estu_horassemanatrabaja": "estu_horassemanatrabaja",
 }
+
+COLS_UBICACION_MCPIO = "cole_mcpio_ubicacion"
+COLS_UBICACION_DEPTO = "cole_depto_ubicacion"
+COL_AREA = "cole_area_ubicacion"
 
 MAP_ATTR_ICFES = {
     "Examen_Saber_11_20151": {**MAP_ATTR_BASE},

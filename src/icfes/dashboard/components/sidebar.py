@@ -35,13 +35,15 @@ def render_sidebar(svc) -> tuple:
         st.markdown("<div class='grad-divider'></div>", unsafe_allow_html=True)
         sel_anos = st.multiselect("📅 Año", options=anos_list, default=[])
         sel_deptos = st.multiselect("📍 Departamento", options=deptos_list, default=[])
-        sel_genero = st.multiselect("👤 Género Estudiante", options=genero_list, default=[])
+        sel_genero = st.multiselect(
+            "👤 Género Estudiante", options=genero_list, default=[]
+        )
         sel_naturaleza = st.selectbox(
             "🏫 Naturaleza Colegio", ["Todas", "OFICIAL", "NO OFICIAL"]
         )
         st.caption("Los filtros aplican a la sección **Análisis**.")
 
-    filters = []
+    filters = ["cole_cod_depto_ubicacion is not null and cole_depto_ubicacion != ''"]
     if sel_anos:
         filters.append(f"ano IN ({','.join([repr(a) for a in sel_anos])})")
     if sel_deptos:

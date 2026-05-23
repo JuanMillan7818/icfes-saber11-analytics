@@ -5,7 +5,9 @@ import streamlit as st
 from icfes.dashboard.components.theme import dark_layout
 
 
-def render(svc, where_clause: str, sel_anos, sel_deptos, sel_genero, sel_naturaleza: str):
+def render(
+    svc, where_clause: str, sel_anos, sel_deptos, sel_genero, sel_naturaleza: str
+):
     st.markdown("<br>", unsafe_allow_html=True)
 
     if where_clause:
@@ -67,8 +69,14 @@ def render(svc, where_clause: str, sel_anos, sel_deptos, sel_genero, sel_natural
     # Charts row 1
     c1, c2 = st.columns([3, 2], gap="large")
     with c1:
-        st.markdown('<div class="section-title">Evolución temporal</div>', unsafe_allow_html=True)
-        st.markdown('<div class="section-heading">Tendencia del Puntaje Global</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="section-title">Evolución temporal</div>',
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            '<div class="section-heading">Tendencia del Puntaje Global</div>',
+            unsafe_allow_html=True,
+        )
         try:
             df_trend = svc.query_df(
                 f"""
@@ -78,13 +86,17 @@ def render(svc, where_clause: str, sel_anos, sel_deptos, sel_genero, sel_natural
             )
             if not df_trend.empty:
                 fig = px.area(
-                    df_trend, x="ano", y="promedio",
-                    color_discrete_sequence=["#38bdf8"], markers=True,
+                    df_trend,
+                    x="ano",
+                    y="promedio",
+                    color_discrete_sequence=["#38bdf8"],
+                    markers=True,
                 )
                 fig.data[0].fill = "tozeroy"
                 fig.data[0].fillcolor = "rgba(56,189,248,0.12)"
                 fig.update_traces(
-                    line_width=2.5, marker_size=8,
+                    line_width=2.5,
+                    marker_size=8,
                     hovertemplate="<b>%{x}</b><br>Promedio: %{y:.1f}<extra></extra>",
                 )
                 fig.update_layout(**dark_layout(title=""))
@@ -95,9 +107,14 @@ def render(svc, where_clause: str, sel_anos, sel_deptos, sel_genero, sel_natural
             st.error(f"Error: {e}")
 
     with c2:
-        st.markdown('<div class="section-title">Competencias</div>', unsafe_allow_html=True)
-        st.markdown('<div class="section-heading">Radar por Área</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="section-title">Competencias</div>', unsafe_allow_html=True
+        )
+        st.markdown(
+            '<div class="section-heading">Radar por Área</div>', unsafe_allow_html=True
+        )
         try:
+            isNaN = "isnan(punt_ingles) = false"
             df_r = svc.query_df(
                 f"""
                 SELECT AVG(CAST(punt_matematicas AS DOUBLE)) AS mat,
@@ -105,7 +122,7 @@ def render(svc, where_clause: str, sel_anos, sel_deptos, sel_genero, sel_natural
                     AVG(CAST(punt_c_naturales AS DOUBLE)) AS cie,
                     AVG(CAST(punt_sociales_ciudadanas AS DOUBLE)) AS soc,
                     AVG(CAST(punt_ingles AS DOUBLE)) AS ing
-                FROM {{parquet}} {where_clause}
+                FROM {{parquet}} {where_clause + "and " + isNaN if where_clause else isNaN}
             """
             )
             if not df_r.empty:
@@ -115,7 +132,9 @@ def render(svc, where_clause: str, sel_anos, sel_deptos, sel_genero, sel_natural
                 labels_c = labels + [labels[0]]
                 fig_r = go.Figure(
                     go.Scatterpolar(
-                        r=vals_c, theta=labels_c, fill="toself",
+                        r=vals_c,
+                        theta=labels_c,
+                        fill="toself",
                         fillcolor="rgba(129,140,248,0.2)",
                         line=dict(color="#818cf8", width=2.5),
                         hovertemplate="<b>%{theta}</b><br>%{r:.1f}<extra></extra>",
@@ -125,7 +144,8 @@ def render(svc, where_clause: str, sel_anos, sel_deptos, sel_genero, sel_natural
                     polar=dict(
                         bgcolor="rgba(0,0,0,0)",
                         radialaxis=dict(
-                            visible=True, range=[0, max(vals) + 8],
+                            visible=True,
+                            range=[0, max(vals) + 8],
                             gridcolor="rgba(255,255,255,0.08)",
                             tickfont=dict(color="#64748b"),
                         ),
@@ -147,8 +167,14 @@ def render(svc, where_clause: str, sel_anos, sel_deptos, sel_genero, sel_natural
     st.markdown('<div class="grad-divider"></div>', unsafe_allow_html=True)
 
     # Charts row 2
-    st.markdown('<div class="section-title">Distribución geográfica</div>', unsafe_allow_html=True)
-    st.markdown('<div class="section-heading">Top 10 Departamentos · Promedio Global</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-title">Distribución geográfica</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        '<div class="section-heading">Top 10 Departamentos · Promedio Global</div>',
+        unsafe_allow_html=True,
+    )
     try:
         df_geo = svc.query_df(
             f"""
@@ -161,18 +187,27 @@ def render(svc, where_clause: str, sel_anos, sel_deptos, sel_genero, sel_natural
         )
         if not df_geo.empty:
             fig_b = px.bar(
-                df_geo, x="Promedio", y="Departamento", orientation="h",
-                color="Promedio", color_continuous_scale=["#1e3a5f", "#38bdf8"],
-                hover_data={"Estudiantes": True}, text_auto=".1f",
+                df_geo,
+                x="Promedio",
+                y="Departamento",
+                orientation="h",
+                color="Promedio",
+                color_continuous_scale=["#1e3a5f", "#38bdf8"],
+                hover_data={"Estudiantes": True},
+                text_auto=".1f",
             )
+            fig_b.update_layout(**dark_layout(margin=dict(l=0, r=0, t=10, b=0)))
+
+            # 2. Sobrescribe/Actualiza específicamente el yaxis y xaxis
             fig_b.update_layout(
-                **dark_layout(margin=dict(l=0, r=0, t=10, b=0)),
                 yaxis={"categoryorder": "total ascending", "title": ""},
                 xaxis=dict(showgrid=False, title="Promedio Global"),
                 coloraxis_showscale=False,
             )
+
             fig_b.update_traces(
-                textfont_color="#f8fafc", textposition="outside",
+                textfont_color="#f8fafc",
+                textposition="outside",
                 hovertemplate="<b>%{y}</b><br>Promedio: %{x:.1f}<br>Estudiantes: %{customdata[0]:,}<extra></extra>",
             )
             st.plotly_chart(fig_b, use_container_width=True)

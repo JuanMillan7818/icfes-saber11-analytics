@@ -29,10 +29,10 @@ CSS = """
     [data-testid="stSidebar"] {
         background: rgba(10, 18, 35, 0.95) !important;
         backdrop-filter: blur(20px);
-        border-right: 1px solid rgba(56, 189, 248, 0.15);
-        padding-top: 80px !important;
+        border-right: 1px solid rgba(56, 189, 248, 0.15);        
     }
     [data-testid="stSidebar"] * { color: #f8fafc !important; }
+    [data-testid="stSidebarNav"] { display: none !important; }
 
     /* ─── Top Navbar ─── */
     .navbar {
@@ -62,7 +62,6 @@ CSS = """
 
     /* ─── Page offset for navbar ─── */
     .main > div { padding-top: 80px !important; }
-    [data-testid="stSidebar"] > div:first-child { padding-top: 80px !important; }
 
     /* ─── KPI Cards ─── */
     div[data-testid="metric-container"] {
