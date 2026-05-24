@@ -65,7 +65,7 @@ def _trend_area_ubicacion(_svc, where: str):
             SELECT ano, cole_area_ubicacion AS Area,
                    AVG(CAST(punt_global AS DOUBLE)) AS Promedio
             FROM {{parquet}}
-            WHERE cole_area_ubicacion IS NOT NULL AND ano IS NOT NULL {where}
+            WHERE cole_area_ubicacion IS NOT NULL AND ano IS NOT NULL AND cole_area_ubicacion != '' {where}
             GROUP BY ano, cole_area_ubicacion
             ORDER BY ano
             """
@@ -161,9 +161,9 @@ def render(svc=None):
         anos_rez = df_rez["ano"].astype(str).tolist()
         vals_rez = {str(r["ano"]): float(r["Promedio"]) for _, r in df_rez.iterrows()}
 
-        k2019 = vals_rez.get("2019")
-        k2022 = vals_rez.get("2022")
-        k2025 = vals_rez.get("2025")
+        k2019 = vals_rez.get("2019.0")
+        k2022 = vals_rez.get("2022.0")
+        k2025 = vals_rez.get("2025.0")
 
         rk1, rk2, rk3, rk4 = st.columns(4)
         rk1.metric("📘 2019 (pre-pandemia)", f"{k2019:.1f}" if k2019 else "N/A")
