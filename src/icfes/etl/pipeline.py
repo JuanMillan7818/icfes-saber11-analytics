@@ -18,6 +18,18 @@ from icfes.etl.config import (
     COL_COD_DEPTO,
 )
 
+COLS_NOMBRE_INSTITUCION = ("cole_nombre_establecimiento", "cole_nombre_sede")
+
+# ¿ mid-word = corrupted Ñ in source .txt (e.g. SE¿ORA → SEÑORA)
+_RE_MID_WORD_INVQ = re.compile(r"(?<=\w)¿(?=\w)")
+
+
+def _fix_nombre_institucion(valor: str) -> str:
+    if not isinstance(valor, str):
+        return valor
+    return _RE_MID_WORD_INVQ.sub("Ñ", valor)
+
+
 MAP_DESEMP_A_PUNT = {
     "desemp_c_naturales": "punt_c_naturales",
     "desemp_lectura_critica": "punt_lectura_critica",
@@ -292,6 +304,14 @@ def make_normalization() -> None:
                         arrays_extraidos.append(
                             pa.array(
                                 s.map(normalizar_ubicacion).values, type=pa.string()
+                            )
+                        )
+                        nombres_estandarizados.append(col_final)
+                    elif col_final in COLS_NOMBRE_INSTITUCION:
+                        s = tabla_raw.column(col_original).to_pandas()
+                        arrays_extraidos.append(
+                            pa.array(
+                                s.map(_fix_nombre_institucion).values, type=pa.string()
                             )
                         )
                         nombres_estandarizados.append(col_final)
