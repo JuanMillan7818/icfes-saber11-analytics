@@ -170,17 +170,17 @@ def render(svc=None):
         st.metric(
             "Internet actual",
             f"{default_internet:.1f}%",
-            delta=f"+{sim_internet - default_internet:.1f}%",
+            delta=f"{sim_internet - default_internet:+.1f}%",
         )
         st.metric(
             "Edu. superior actual",
             f"{default_edu:.1f}%",
-            delta=f"+{sim_edu - default_edu:.1f}%",
+            delta=f"{sim_edu - default_edu:+.1f}%",
         )
         st.metric(
             "Estrato actual",
             f"{default_estrato:.2f}",
-            delta=f"+{sim_estrato - default_estrato:.2f}",
+            delta=f"{sim_estrato - default_estrato:+.2f}",
         )
 
     with col_res:
@@ -191,7 +191,7 @@ def render(svc=None):
         try:
             pred_real = float(np.clip(model.predict(X_real)[0], 0, 500))
             pred_sim = float(np.clip(model.predict(X_sim)[0], 0, 500))
-            delta_pred = pred_sim - pred_real
+            delta_pred = pred_sim - prom_real  # vs dato real, no vs predicción base
         except Exception as e:
             st.error(f"Error al predecir: {e}")
             return
