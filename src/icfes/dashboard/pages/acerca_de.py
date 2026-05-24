@@ -6,18 +6,18 @@ import streamlit as st
 DEVELOPERS = [
     {
         "name": "Juan Pablo Millán",
-        "role": "Data Engineer · ETL & DuckDB",
+        "role": "",
         "icon": "⚙️",
     },
     {
-        "name": "Integrante 2",
-        "role": "Data Analyst · Visualización",
-        "icon": "📊",
+        "name": "Mayerly Marmolejo Triviño",
+        "role": "",
+        "icon": "⚙️",
     },
     {
-        "name": "Integrante 3",
-        "role": "ML Engineer · Modelos predictivos",
-        "icon": "🤖",
+        "name": "Julian Andres Gasca Arevalo",
+        "role": "",
+        "icon": "⚙️",
     },
 ]
 
@@ -55,7 +55,7 @@ def render():
             ">
                 Plataforma de análisis interactivo de microdatos educativos colombianos.
                 Explora <strong style="color:#f8fafc">10 años de resultados</strong> del examen Saber 11
-                (2015 – 2025) con consultas in-memory a velocidad DuckDB sobre ~4.8&nbsp;M registros.
+                (2015 – 2025) con consultas in-memory a velocidad DuckDB sobre ~4.8&nbsp;M registros (~4.3GB).
                 Diseñada para coordinadores académicos, secretarías de educación y planificadores educativos.
             </div>
         </div>
@@ -85,7 +85,7 @@ def render():
             ],
             "Propósito": [
                 "Consultas OLAP in-memory sobre Parquet",
-                "Procesamiento y validación de esquemas CSV → Parquet",
+                "Procesamiento y validación de esquemas TXT/CSV → Parquet",
                 "Interfaz web interactiva multi-tab",
                 "Visualizaciones dinámicas e interactivas",
                 "Gestor de paquetes ultrarrápido (Rust)",

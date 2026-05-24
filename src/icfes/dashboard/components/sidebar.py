@@ -8,13 +8,13 @@ def _load_filter_options(_svc):
             "SELECT DISTINCT ano FROM {parquet} WHERE ano IS NOT NULL ORDER BY ano"
         )
         df_deptos = _svc.query_df(
-            "SELECT DISTINCT cole_depto_ubicacion FROM {parquet} WHERE cole_depto_ubicacion IS NOT NULL ORDER BY cole_depto_ubicacion"
+            "SELECT DISTINCT cole_depto_ubicacion FROM {parquet} WHERE cole_depto_ubicacion IS NOT NULL AND cole_depto_ubicacion != '' ORDER BY cole_depto_ubicacion"
         )
         df_genero = _svc.query_df(
-            "SELECT DISTINCT estu_genero FROM {parquet} WHERE estu_genero IS NOT NULL"
+            "SELECT DISTINCT estu_genero FROM {parquet} WHERE estu_genero IS NOT NULL AND estu_genero != ''"
         )
         return (
-            df_anos["ano"].dropna().tolist(),
+            df_anos["ano"].dropna().astype(int).tolist(),
             df_deptos["cole_depto_ubicacion"].dropna().tolist(),
             df_genero["estu_genero"].dropna().tolist(),
         )
@@ -33,15 +33,26 @@ def render_sidebar(svc) -> tuple:
     with st.sidebar:
         st.markdown("### ⚙️ Filtros Globales")
         st.markdown("<div class='grad-divider'></div>", unsafe_allow_html=True)
-        sel_anos = st.multiselect("📅 Año", options=anos_list, default=[])
-        sel_deptos = st.multiselect("📍 Departamento", options=deptos_list, default=[])
+        sel_anos = st.multiselect(
+            "📅 Año", options=anos_list, default=[], placeholder="Selecciona el año"
+        )
+        sel_deptos = st.multiselect(
+            "📍 Departamento",
+            options=deptos_list,
+            default=[],
+            placeholder="Selecciona el departamento",
+        )
         sel_genero = st.multiselect(
-            "👤 Género Estudiante", options=genero_list, default=[]
+            "👤 Género Estudiante",
+            options=genero_list,
+            default=[],
+            placeholder="Selecciona el género",
         )
         sel_naturaleza = st.selectbox(
-            "🏫 Naturaleza Colegio", ["Todas", "OFICIAL", "NO OFICIAL"]
+            "🏫 Naturaleza Colegio",
+            ["Todas", "OFICIAL", "NO OFICIAL"],
         )
-        st.caption("Los filtros aplican a la sección **Análisis**.")
+        st.caption("Los filtros aplican a la sección **Explorar -> Análisis**.")
 
     filters = ["cole_cod_depto_ubicacion is not null and cole_depto_ubicacion != ''"]
     if sel_anos:

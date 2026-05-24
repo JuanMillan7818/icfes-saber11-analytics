@@ -143,8 +143,8 @@ def _query_depto_period(svc) -> pd.DataFrame | None:
                    ano,
                    AVG(CAST(punt_global AS DOUBLE)) AS Promedio
             FROM {parquet}
-            WHERE cole_depto_ubicacion IS NOT NULL AND ano IS NOT NULL
-            GROUP BY cole_depto_ubicacion, ano
+            WHERE cole_depto_ubicacion IS NOT NULL AND ano IS NOT NULL AND cole_depto_ubicacion != ''
+            GROUP BY cole_depto_ubicacion, ano ORDER BY cole_depto_ubicacion
             """
         )
         if df.empty:
@@ -223,7 +223,7 @@ def _query_gender_period(svc) -> pd.DataFrame | None:
                    ano,
                    AVG(CAST(punt_global AS DOUBLE)) AS Promedio
             FROM {parquet}
-            WHERE estu_genero IS NOT NULL AND ano IS NOT NULL
+            WHERE estu_genero IS NOT NULL AND ano IS NOT NULL AND estu_genero != ''
             GROUP BY estu_genero, ano
             """
         )
@@ -473,9 +473,12 @@ def render(svc=None):
 
     c_geo1, c_geo2 = st.columns([3, 2], gap="large")
 
+    n_deptos = len(df_depto)
+    chart_h = max(400, n_deptos * 28)
+
     with c_geo1:
         fig_depto = px.bar(
-            df_depto.head(15),
+            df_depto,
             x="Caída_pts",
             y="Departamento",
             orientation="h",
@@ -492,8 +495,9 @@ def render(svc=None):
         fig_depto.update_layout(
             **dark_layout(
                 title="Caída de Puntaje (Pre → COVID)",
-                yaxis={"categoryorder": "total ascending", "color": "#64748b"},
+                yaxis={"categoryorder": "category ascending", "color": "#64748b"},
                 coloraxis_showscale=False,
+                height=chart_h,
             )
         )
         st.plotly_chart(fig_depto, use_container_width=True)
@@ -501,7 +505,7 @@ def render(svc=None):
     with c_geo2:
         if "Recuperación_%" in df_depto.columns:
             fig_rec = px.bar(
-                df_depto.head(15).sort_values("Recuperación_%", ascending=False),
+                df_depto,
                 x="Recuperación_%",
                 y="Departamento",
                 orientation="h",
@@ -519,8 +523,9 @@ def render(svc=None):
             fig_rec.update_layout(
                 **dark_layout(
                     title="Índice de Recuperación Post-COVID",
-                    yaxis={"categoryorder": "total ascending", "color": "#64748b"},
+                    yaxis={"categoryorder": "category ascending", "color": "#64748b"},
                     coloraxis_showscale=False,
+                    height=chart_h,
                 )
             )
             st.plotly_chart(fig_rec, use_container_width=True)

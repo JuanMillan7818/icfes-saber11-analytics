@@ -189,12 +189,18 @@ def render(svc=None):
         X_sim = np.array([[sim_internet, sim_edu, sim_estrato]])
 
         try:
-            pred_real = float(model.predict(X_real)[0])
-            pred_sim = float(model.predict(X_sim)[0])
+            pred_real = float(np.clip(model.predict(X_real)[0], 0, 500))
+            pred_sim = float(np.clip(model.predict(X_sim)[0], 0, 500))
             delta_pred = pred_sim - pred_real
         except Exception as e:
             st.error(f"Error al predecir: {e}")
             return
+
+        if pred_sim > 350 or pred_sim < 150:
+            st.warning(
+                f"⚠️ Proyección ({pred_sim:.1f} pts) fuera del rango nacional típico "
+                "(150–350 pts). El modelo puede necesitar reentrenamiento con datos actualizados."
+            )
 
         # KPIs resultado
         rk1, rk2, rk3 = st.columns(3)
@@ -244,7 +250,7 @@ def render(svc=None):
             font=dict(color="#38bdf8", size=11),
         )
         rng_min = min(valores) - 5
-        rng_max = max(valores) + 8
+        rng_max = min(max(valores) + 8, 500)
         fig_sim.update_layout(
             **dark_layout(
                 title="Último dato real vs Proyección simulada",
