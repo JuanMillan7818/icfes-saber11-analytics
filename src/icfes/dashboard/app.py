@@ -78,7 +78,7 @@ with tab_inicio:
 with tab_explorar:
     sub_explorar = option_menu(
         menu_title=None,
-        options=["Análisis", "Comparativa", "Tendencias"],
+        options=["Análisis", "Tendencias"],  # "Comparativa",
         icons=["bar-chart", "git-compare", "graph-up"],
         menu_icon="cast",
         default_index=0,

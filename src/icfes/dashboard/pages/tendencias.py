@@ -38,7 +38,7 @@ def render(svc=None):
         df_t = (
             svc.query_df(
                 f"""
-            SELECT ano,
+            SELECT CAST(ano AS INTEGER) AS ano,
                    AVG(CAST(punt_global AS DOUBLE)) AS Global,
                    {areas_sql}
             FROM {{parquet}}
@@ -62,29 +62,50 @@ def render(svc=None):
 
         df_t = mock_trend_data()
 
-    # ── Proyección lineal (OLS) sobre Global histórico ────────────────────────
+    # ── Proyección OLS — solo datos post-COVID (2022+) ────────────────────────
+    # Razón: incluir 2020-2021 genera patrón en U que arruina R² de OLS lineal.
+    # La tendencia de recuperación post-pandemia es el predictor relevante.
+    POST_COVID_DESDE = 2022
     proj_anos: list[int] = []
     proj_vals: list[float] = []
     proj_meta: dict = {}
     try:
         anos_num = np.array([int(a) for a in df_t["ano"]])
         global_vals = df_t["Global"].values
-        coef = np.polyfit(anos_num, global_vals, 1)
+
+        # Subconjunto post-COVID para el ajuste
+        mask_post = anos_num >= POST_COVID_DESDE
+        anos_post = anos_num[mask_post]
+        vals_post  = global_vals[mask_post]
+
+        # Necesitamos al menos 2 puntos post-COVID para un ajuste válido
+        if len(anos_post) >= 2:
+            coef = np.polyfit(anos_post, vals_post, 1)
+            anos_fit = anos_post
+            vals_fit = vals_post
+        else:
+            # Fallback: usar todos los datos si hay pocos post-COVID
+            coef = np.polyfit(anos_num, global_vals, 1)
+            anos_fit = anos_num
+            vals_fit = global_vals
+
         proj_anos = [2026, 2027]
         proj_vals = [float(np.polyval(coef, y)) for y in proj_anos]
 
-        y_hat = np.polyval(coef, anos_num)
-        ss_res = float(np.sum((global_vals - y_hat) ** 2))
-        ss_tot = float(np.sum((global_vals - np.mean(global_vals)) ** 2))
+        y_hat_fit = np.polyval(coef, anos_fit)
+        ss_res = float(np.sum((vals_fit - y_hat_fit) ** 2))
+        ss_tot = float(np.sum((vals_fit - np.mean(vals_fit)) ** 2))
         r2 = round(1.0 - ss_res / ss_tot, 4) if ss_tot > 0 else 0.0
-        mse = float(np.mean((global_vals - y_hat) ** 2))
+        mse = float(np.mean((vals_fit - y_hat_fit) ** 2))
         rmse = float(np.sqrt(mse))
         proj_meta = {
             "r2": r2,
             "mse": round(mse, 2),
             "rmse": round(rmse, 2),
-            "n": int(len(anos_num)),
+            "n": int(len(anos_fit)),
+            "n_total": int(len(anos_num)),
             "pendiente": round(float(coef[0]), 3),
+            "base": f"{int(anos_fit[0])}–{int(anos_fit[-1])} (post-COVID)" if len(anos_post) >= 2 else "todos los años",
             "confianza_pct": round(max(r2, 0.0) * 100, 1),
             "nivel": "Alta" if r2 >= 0.85 else "Moderada" if r2 >= 0.60 else "Baja",
         }
@@ -92,6 +113,11 @@ def render(svc=None):
         pass
 
     # ── Gráfico principal: histórico + proyección ──────────────────────────────
+    all_vals = list(df_t["Global"].values) + (proj_vals if proj_vals else [])
+    y_min_g = min(all_vals)
+    y_max_g = max(all_vals)
+    y_pad_g = max((y_max_g - y_min_g) * 0.4, 3.0)
+
     fig_proj = go.Figure()
     fig_proj.add_trace(
         go.Scatter(
@@ -99,25 +125,32 @@ def render(svc=None):
             y=df_t["Global"].round(2),
             name="Histórico",
             line=dict(color="#38bdf8", width=3),
-            fill="tozeroy",
-            fillcolor="rgba(56,189,248,0.10)",
+            fill="none",
+            marker=dict(size=7, color="#38bdf8"),
             hovertemplate="<b>%{x}</b><br>Global: %{y:.1f}<extra></extra>",
         )
     )
-    if proj_anos:
+    if proj_anos and proj_vals:
+        # Anclar proyección al último dato real para continuidad visual
+        ultimo_ano = str(df_t["ano"].iloc[-1])
+        ultimo_val = round(float(df_t["Global"].iloc[-1]), 2)
+        x_proj = [ultimo_ano] + [str(y) for y in proj_anos]
+        y_proj = [ultimo_val] + [round(v, 1) for v in proj_vals]
+
         fig_proj.add_trace(
             go.Scatter(
-                x=[str(y) for y in proj_anos],
-                y=[round(v, 1) for v in proj_vals],
-                name="Proyección",
+                x=x_proj,
+                y=y_proj,
+                name="Proyección OLS",
                 line=dict(color="#818cf8", width=2.5, dash="dot"),
-                marker=dict(size=10, color="#818cf8"),
+                marker=dict(size=9, color="#818cf8",
+                            symbol=["circle"] + ["diamond"] * len(proj_anos)),
                 hovertemplate="<b>%{x}</b><br>Proyección: %{y:.1f}<extra></extra>",
             )
         )
         fig_proj.add_vrect(
-            x0="2026",
-            x1="2027",
+            x0=str(proj_anos[0]),
+            x1=str(proj_anos[-1]),
             fillcolor="rgba(129,140,248,0.07)",
             line_width=0,
             annotation_text="Proyección",
@@ -126,6 +159,10 @@ def render(svc=None):
         )
     fig_proj.update_layout(
         **dark_layout(title="Evolución del Puntaje Global con Proyección 2026–2027")
+    )
+    fig_proj.update_layout(
+        yaxis=dict(range=[y_min_g - y_pad_g, y_max_g + y_pad_g],
+                   title="Puntaje Global Promedio")
     )
     st.plotly_chart(fig_proj, use_container_width=True)
 
@@ -138,7 +175,8 @@ def render(svc=None):
             <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px;">
               <div class="info-chip">
                 🤖 <strong>Algoritmo:</strong> Regresión Lineal OLS
-                &nbsp;|&nbsp; <strong>Datos históricos:</strong> {proj_meta['n']} años
+                &nbsp;|&nbsp; <strong>Base del ajuste:</strong> {proj_meta.get('base', 'todos los años')}
+                &nbsp;|&nbsp; <strong>n ajuste:</strong> {proj_meta['n']} años
                 &nbsp;|&nbsp; <strong>Pendiente:</strong> {proj_meta['pendiente']:+.3f} pts/año
               </div>
               <div class="info-chip">
@@ -152,8 +190,8 @@ def render(svc=None):
               </div>
             </div>
             <div style="color:#475569;font-size:0.75rem;margin-bottom:12px;">
-              ⚠️ La proyección asume continuidad lineal de la tendencia histórica.
-              R² mide qué tan bien el modelo explica la varianza pasada — no garantiza exactitud futura.
+              ⚠️ Proyección basada en tendencia post-COVID (2022+) — excluye años de pandemia para evitar distorsión en la regresión lineal.
+              R² mide ajuste sobre datos de entrenamiento — no garantiza exactitud futura.
             </div>
             """,
             unsafe_allow_html=True,

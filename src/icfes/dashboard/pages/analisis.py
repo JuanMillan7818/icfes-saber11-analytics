@@ -85,6 +85,9 @@ def render(
             """
             )
             if not df_trend.empty:
+                y_min = df_trend["promedio"].min()
+                y_max = df_trend["promedio"].max()
+                padding = max((y_max - y_min) * 0.5, 3.0)
                 fig = px.area(
                     df_trend,
                     x="ano",
@@ -92,7 +95,7 @@ def render(
                     color_discrete_sequence=["#38bdf8"],
                     markers=True,
                 )
-                fig.data[0].fill = "tozeroy"
+                fig.data[0].fill = "tonexty"
                 fig.data[0].fillcolor = "rgba(56,189,248,0.12)"
                 fig.update_traces(
                     line_width=2.5,
@@ -100,6 +103,12 @@ def render(
                     hovertemplate="<b>%{x}</b><br>Promedio: %{y:.1f}<extra></extra>",
                 )
                 fig.update_layout(**dark_layout(title=""))
+                fig.update_layout(
+                    yaxis=dict(
+                        range=[y_min - padding, y_max + padding],
+                        title="Puntaje Global Promedio",
+                    )
+                )
                 st.plotly_chart(fig, use_container_width=True)
             else:
                 st.info("Sin datos para el filtro seleccionado.")
@@ -171,20 +180,31 @@ def render(
         unsafe_allow_html=True,
     )
     st.markdown(
-        '<div class="section-heading">Top 10 Departamentos · Promedio Global</div>',
+        '<div class="section-heading">Departamentos · Promedio Global</div>',
         unsafe_allow_html=True,
     )
     try:
+        _depto_filter = "cole_depto_ubicacion IS NOT NULL AND cole_depto_ubicacion != ''"
+        _geo_where = (
+            where_clause + f" AND {_depto_filter}"
+            if where_clause
+            else f"WHERE {_depto_filter}"
+        )
         df_geo = svc.query_df(
             f"""
             SELECT cole_depto_ubicacion AS Departamento,
                    AVG(CAST(punt_global AS DOUBLE)) AS Promedio,
                    COUNT(*) AS Estudiantes
-            FROM {{parquet}} {where_clause}
-            GROUP BY cole_depto_ubicacion ORDER BY Promedio DESC LIMIT 10
+            FROM {{parquet}} {_geo_where}
+            GROUP BY cole_depto_ubicacion ORDER BY Promedio DESC
         """
         )
         if not df_geo.empty:
+            chart_h = max(380, len(df_geo) * 26)
+            x_min = df_geo["Promedio"].min()
+            x_max = df_geo["Promedio"].max()
+            x_pad = max((x_max - x_min) * 0.15, 2.0)
+
             fig_b = px.bar(
                 df_geo,
                 x="Promedio",
@@ -196,14 +216,16 @@ def render(
                 text_auto=".1f",
             )
             fig_b.update_layout(**dark_layout(margin=dict(l=0, r=0, t=10, b=0)))
-
-            # 2. Sobrescribe/Actualiza específicamente el yaxis y xaxis
             fig_b.update_layout(
+                height=chart_h,
                 yaxis={"categoryorder": "total ascending", "title": ""},
-                xaxis=dict(showgrid=False, title="Promedio Global"),
+                xaxis=dict(
+                    showgrid=False,
+                    title="Promedio Global",
+                    range=[x_min - x_pad, x_max + x_pad],
+                ),
                 coloraxis_showscale=False,
             )
-
             fig_b.update_traces(
                 textfont_color="#f8fafc",
                 textposition="outside",
