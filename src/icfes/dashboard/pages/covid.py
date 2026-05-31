@@ -16,6 +16,9 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from icfes.dashboard.components.theme import dark_layout
+from icfes.logger import get_logger
+
+log = get_logger(__name__)
 
 # ── Constantes de período ──────────────────────────────────────────────────────
 PRE = (2015, 2019)
@@ -51,20 +54,24 @@ def _periodo(ano: int) -> str:
 
 def _query_yearly(svc) -> pd.DataFrame | None:
     """Promedio anual por área desde datos reales."""
+    # Aliases entre comillas dobles — DuckDB acepta tildes dentro de "..."
+    # Guión bajo reemplaza espacios para que coincida con el mock (_mock_yearly)
     cols_sql = ", ".join(
-        f"AVG(CAST({col} AS DOUBLE)) AS {alias.replace(' ', '_').replace('.', '')}"
+        f"AVG(CASE WHEN isnan(TRY_CAST({col} AS DOUBLE)) THEN NULL "
+        f'ELSE TRY_CAST({col} AS DOUBLE) END) AS "{alias.replace(" ", "_").replace(".", "")}"'
         for col, alias in AREAS.items()
     )
     try:
         df = svc.query_df(
-            f"SELECT ano, {cols_sql} FROM {{parquet}} WHERE ano IS NOT NULL GROUP BY ano ORDER BY ano"
+            f"SELECT CAST(ano AS INTEGER) AS ano, {cols_sql} FROM {{parquet}} WHERE ano IS NOT NULL GROUP BY ano ORDER BY ano"
         )
         if df.empty:
             return None
-        df["ano"] = df["ano"].astype(str)
+        df["ano"] = df["ano"].astype(int).astype(str)
         df["Período"] = df["ano"].astype(int).map(_periodo)
         return df
-    except Exception:
+    except Exception as e:
+        log.warning("_query_yearly falló: %s", e)
         return None
 
 
@@ -284,6 +291,10 @@ def render(svc=None):
     # ── Cargar datos ──────────────────────────────────────────────────────────
     with st.spinner("Cargando datos COVID..."):
         df_yearly = _query_yearly(svc) if svc else None
+        log.info(
+            "_query_yearly: %s filas",
+            len(df_yearly) if df_yearly is not None else "None",
+        )
         using_mock = df_yearly is None
         if using_mock:
             df_yearly = _mock_yearly()

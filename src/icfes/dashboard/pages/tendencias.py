@@ -24,10 +24,16 @@ def render(svc=None):
     )
 
     # ── Cargar datos históricos ────────────────────────────────────────────────
-    areas_sql = ", ".join(
-        f"AVG(CAST({col} AS DOUBLE)) AS {alias.replace(' ', '_').replace('á','a').replace('é','e').replace('í','i')}"
-        for col, alias in AREAS.items()
-    )
+    def _area_avg(col: str, alias: str) -> str:
+        clean = alias.replace(' ', '_').replace('á','a').replace('é','e').replace('í','i')
+        if col == "punt_ingles":
+            return (
+                f"AVG(CASE WHEN {col} IS NULL OR isnan(CAST({col} AS DOUBLE)) THEN 0.0"
+                f" ELSE CAST({col} AS DOUBLE) END) AS {clean}"
+            )
+        return f"AVG(CAST({col} AS DOUBLE)) AS {clean}"
+
+    areas_sql = ", ".join(_area_avg(col, alias) for col, alias in AREAS.items())
     try:
         df_t = (
             svc.query_df(
@@ -37,7 +43,6 @@ def render(svc=None):
                    {areas_sql}
             FROM {{parquet}}
             WHERE ano IS NOT NULL
-            AND isnan(punt_ingles) = false
             GROUP BY ano ORDER BY ano
             """
             )
@@ -57,15 +62,34 @@ def render(svc=None):
 
         df_t = mock_trend_data()
 
-    # ── Proyección simple (regresión lineal sobre Global histórico) ────────────
+    # ── Proyección lineal (OLS) sobre Global histórico ────────────────────────
+    proj_anos: list[int] = []
+    proj_vals: list[float] = []
+    proj_meta: dict = {}
     try:
         anos_num = np.array([int(a) for a in df_t["ano"]])
         global_vals = df_t["Global"].values
         coef = np.polyfit(anos_num, global_vals, 1)
         proj_anos = [2026, 2027]
-        proj_vals = [np.polyval(coef, y) for y in proj_anos]
+        proj_vals = [float(np.polyval(coef, y)) for y in proj_anos]
+
+        y_hat = np.polyval(coef, anos_num)
+        ss_res = float(np.sum((global_vals - y_hat) ** 2))
+        ss_tot = float(np.sum((global_vals - np.mean(global_vals)) ** 2))
+        r2 = round(1.0 - ss_res / ss_tot, 4) if ss_tot > 0 else 0.0
+        mse = float(np.mean((global_vals - y_hat) ** 2))
+        rmse = float(np.sqrt(mse))
+        proj_meta = {
+            "r2": r2,
+            "mse": round(mse, 2),
+            "rmse": round(rmse, 2),
+            "n": int(len(anos_num)),
+            "pendiente": round(float(coef[0]), 3),
+            "confianza_pct": round(max(r2, 0.0) * 100, 1),
+            "nivel": "Alta" if r2 >= 0.85 else "Moderada" if r2 >= 0.60 else "Baja",
+        }
     except Exception:
-        proj_anos, proj_vals = [], []
+        pass
 
     # ── Gráfico principal: histórico + proyección ──────────────────────────────
     fig_proj = go.Figure()
@@ -104,6 +128,36 @@ def render(svc=None):
         **dark_layout(title="Evolución del Puntaje Global con Proyección 2026–2027")
     )
     st.plotly_chart(fig_proj, use_container_width=True)
+
+    if proj_meta:
+        nivel_color = {"Alta": "#34d399", "Moderada": "#facc15", "Baja": "#f87171"}.get(
+            proj_meta["nivel"], "#94a3b8"
+        )
+        st.markdown(
+            f"""
+            <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px;">
+              <div class="info-chip">
+                🤖 <strong>Algoritmo:</strong> Regresión Lineal OLS
+                &nbsp;|&nbsp; <strong>Datos históricos:</strong> {proj_meta['n']} años
+                &nbsp;|&nbsp; <strong>Pendiente:</strong> {proj_meta['pendiente']:+.3f} pts/año
+              </div>
+              <div class="info-chip">
+                📐 <strong>R²:</strong> {proj_meta['r2']:.4f}
+                &nbsp;|&nbsp; <strong>MSE:</strong> {proj_meta['mse']:.2f}
+                &nbsp;|&nbsp; <strong>RMSE:</strong> {proj_meta['rmse']:.2f}
+              </div>
+              <div class="info-chip" style="border-color:{nivel_color};color:{nivel_color};">
+                🎯 <strong>Confianza proyección:</strong> {proj_meta['confianza_pct']}%
+                &nbsp;·&nbsp; Nivel: <strong>{proj_meta['nivel']}</strong>
+              </div>
+            </div>
+            <div style="color:#475569;font-size:0.75rem;margin-bottom:12px;">
+              ⚠️ La proyección asume continuidad lineal de la tendencia histórica.
+              R² mide qué tan bien el modelo explica la varianza pasada — no garantiza exactitud futura.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     st.markdown('<div class="grad-divider"></div>', unsafe_allow_html=True)
 

@@ -47,7 +47,7 @@ def _trend_naturaleza(_svc, where: str):
             SELECT ano, cole_naturaleza AS Tipo,
                    AVG(CAST(punt_global AS DOUBLE)) AS Promedio
             FROM {{parquet}}
-            WHERE cole_naturaleza IS NOT NULL AND ano IS NOT NULL {where}
+            WHERE cole_naturaleza IS NOT NULL AND ano IS NOT NULL AND cole_naturaleza != '' {where}
             GROUP BY ano, cole_naturaleza
             ORDER BY ano
             """
@@ -189,75 +189,82 @@ def render(svc=None):
 
     st.markdown('<div class="grad-divider"></div>', unsafe_allow_html=True)
 
-    # ── Oficial vs No Oficial ──────────────────────────────────────────────────
-    st.markdown("#### 🏫 Promedio Global: Oficial vs No Oficial (2015–2025)")
-    with st.spinner("Cargando tendencia por naturaleza..."):
-        df_nat = _trend_naturaleza(svc, add_where)
-
-    if df_nat is not None and not df_nat.empty:
-        fig_nat = go.Figure()
-        color_nat = {"OFICIAL": "#818cf8", "NO OFICIAL": "#34d399"}
-        for tipo in df_nat["Tipo"].unique():
-            sub = df_nat[df_nat["Tipo"] == tipo]
-            fig_nat.add_trace(
-                go.Scatter(
-                    x=sub["ano"].astype(str),
-                    y=sub["Promedio"].round(1),
-                    name=str(tipo),
-                    mode="lines+markers",
-                    line=dict(
-                        color=color_nat.get(str(tipo).upper(), "#94a3b8"), width=2.5
-                    ),
-                    marker=dict(size=8),
-                    hovertemplate=f"<b>%{{x}}</b><br>{tipo}: %{{y:.1f}}<extra></extra>",
-                )
-            )
-        fig_nat.update_layout(
-            **dark_layout(
-                title="",
-                legend=dict(
-                    orientation="h", yanchor="bottom", y=1.02, bgcolor="rgba(0,0,0,0)"
-                ),
-            )
-        )
-        st.plotly_chart(fig_nat, use_container_width=True)
-    else:
-        st.info("Sin datos de naturaleza de colegio para el filtro seleccionado.")
-
-    st.markdown('<div class="grad-divider"></div>', unsafe_allow_html=True)
-
-    # ── Urbano vs Rural ────────────────────────────────────────────────────────
-    st.markdown("#### 🌐 Promedio Global: Urbano vs Rural (2015–2025)")
-    with st.spinner("Cargando tendencia urbano/rural..."):
+    # ── Oficial vs No Oficial  |  Urbano vs Rural ──────────────────────────────
+    with st.spinner("Cargando tendencias..."):
+        df_nat  = _trend_naturaleza(svc, add_where)
         df_area = _trend_area_ubicacion(svc, add_where)
 
-    if df_area is not None and not df_area.empty:
-        fig_area = go.Figure()
-        color_area = {"URBANO": "#38bdf8", "RURAL": "#f87171"}
-        for area in df_area["Area"].unique():
-            sub = df_area[df_area["Area"] == area]
-            c = color_area.get(str(area).upper(), "#94a3b8")
-            fig_area.add_trace(
-                go.Scatter(
-                    x=sub["ano"].astype(str),
-                    y=sub["Promedio"].round(1),
-                    name=str(area),
-                    mode="lines+markers",
-                    line=dict(color=c, width=2.5),
-                    fill="tozeroy",
-                    fillcolor=f"rgba({','.join(str(int(c.lstrip('#')[i:i+2],16)) for i in (0,2,4))},0.08)",
-                    marker=dict(size=8),
-                    hovertemplate=f"<b>%{{x}}</b><br>{area}: %{{y:.1f}}<extra></extra>",
+    col_nat, col_area = st.columns(2, gap="large")
+
+    with col_nat:
+        st.markdown("#### 🏫 Oficial vs No Oficial")
+        if df_nat is not None and not df_nat.empty:
+            fig_nat = go.Figure()
+            color_nat = {"OFICIAL": "#818cf8", "NO OFICIAL": "#34d399"}
+            for tipo in df_nat["Tipo"].unique():
+                sub = df_nat[df_nat["Tipo"] == tipo]
+                fig_nat.add_trace(
+                    go.Scatter(
+                        x=sub["ano"].astype(str),
+                        y=sub["Promedio"].round(1),
+                        name=str(tipo),
+                        mode="lines+markers",
+                        line=dict(
+                            color=color_nat.get(str(tipo).upper(), "#94a3b8"), width=2.5
+                        ),
+                        marker=dict(size=7),
+                        hovertemplate=f"<b>%{{x}}</b><br>{tipo}: %{{y:.1f}}<extra></extra>",
+                    )
+                )
+            fig_nat.update_layout(
+                **dark_layout(
+                    title="",
+                    legend=dict(
+                        orientation="h", yanchor="bottom", y=1.02, bgcolor="rgba(0,0,0,0)"
+                    ),
                 )
             )
-        fig_area.update_layout(
-            **dark_layout(
-                title="",
-                legend=dict(
-                    orientation="h", yanchor="bottom", y=1.02, bgcolor="rgba(0,0,0,0)"
-                ),
+            st.plotly_chart(fig_nat, use_container_width=True)
+        else:
+            st.info("Sin datos de naturaleza de colegio.")
+
+    with col_area:
+        st.markdown("#### 🌐 Urbano vs Rural")
+        if df_area is not None and not df_area.empty:
+            y_min = df_area["Promedio"].min()
+            y_max = df_area["Promedio"].max()
+            padding = max((y_max - y_min) * 0.5, 3.0)
+            y_range = [y_min - padding, y_max + padding]
+
+            fig_area = go.Figure()
+            color_area = {"URBANO": "#38bdf8", "RURAL": "#f87171"}
+            areas_order = sorted(df_area["Area"].unique(), key=lambda a: str(a).upper())
+            for i, area in enumerate(areas_order):
+                sub = df_area[df_area["Area"] == area]
+                c = color_area.get(str(area).upper(), "#94a3b8")
+                r, g, b = (int(c.lstrip("#")[j:j+2], 16) for j in (0, 2, 4))
+                fig_area.add_trace(
+                    go.Scatter(
+                        x=sub["ano"].astype(str),
+                        y=sub["Promedio"].round(1),
+                        name=str(area),
+                        mode="lines+markers",
+                        line=dict(color=c, width=2.5),
+                        fill="tonexty" if i > 0 else "none",
+                        fillcolor=f"rgba({r},{g},{b},0.12)",
+                        marker=dict(size=7, color=c),
+                        hovertemplate=f"<b>%{{x}}</b><br>{area}: %{{y:.1f}}<extra></extra>",
+                    )
+                )
+            fig_area.update_layout(
+                **dark_layout(
+                    title="",
+                    yaxis=dict(range=y_range, title="Puntaje Global Promedio"),
+                    legend=dict(
+                        orientation="h", yanchor="bottom", y=1.02, bgcolor="rgba(0,0,0,0)"
+                    ),
+                )
             )
-        )
-        st.plotly_chart(fig_area, use_container_width=True)
-    else:
-        st.info("Sin datos de área de ubicación para el filtro seleccionado.")
+            st.plotly_chart(fig_area, use_container_width=True)
+        else:
+            st.info("Sin datos de área de ubicación.")

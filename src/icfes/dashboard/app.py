@@ -14,6 +14,7 @@ from icfes.dashboard.pages import (
     coordinador,
     covid,
     inicio,
+    perfilamiento,
     priorizacion,
     secretario,
     simulador,
@@ -123,8 +124,13 @@ with tab_explorar:
 with tab_tableros:
     sub_tableros = option_menu(
         menu_title=None,
-        options=["Coordinador", "Secretario", "Simulador Predictivo", "Priorización IPE"],
-        icons=["mortarboard", "briefcase", "cpu", "award"],
+        options=[
+            "Coordinador",
+            "Secretario",
+            "Simulador Predictivo",
+            "Priorización IPE",
+        ],  # "Perfilamiento"
+        icons=["mortarboard", "briefcase", "cpu", "award", "person-badge"],
         menu_icon="cast",
         default_index=0,
         orientation="horizontal",
@@ -136,7 +142,7 @@ with tab_tableros:
                 "border": "1px solid rgba(56, 189, 248, 0.15) !important",
                 "border-radius": "99px !important",
                 "margin": "0 auto 20px auto !important",
-                "max-width": "700px !important",
+                "max-width": "900px !important",
             },
             "icon": {"color": "#38bdf8", "font-size": "14px"},
             "nav-link": {
@@ -163,8 +169,10 @@ with tab_tableros:
         secretario.render(svc)
     elif sub_tableros == "Simulador Predictivo":
         simulador.render(svc)
-    else:
+    elif sub_tableros == "Priorización IPE":
         priorizacion.render(svc)
+    else:
+        perfilamiento.render(svc)
 
 # ── COVID-19 ──────────────────────────────────────────────────────────────────
 with tab_covid:

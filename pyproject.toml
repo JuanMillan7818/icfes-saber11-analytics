@@ -24,6 +24,7 @@ dashboard = [
     "streamlit-option-menu>=0.3.6",
     "reportlab>=4.0.0",
     "google-genai>=2.6.0",
+    "matplotlib>=3.10.9",
 ]
 api = [
     "fastapi>=0.115.0",
@@ -56,3 +57,8 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
+
+[dependency-groups]
+dashboard = [
+    "matplotlib>=3.10.9",
+]

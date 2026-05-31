@@ -16,9 +16,18 @@ AREAS_SQL = {
 }
 
 
+def _avg_col(col: str, alias: str) -> str:
+    if col == "punt_ingles":
+        return (
+            f"AVG(CASE WHEN {col} IS NULL OR isnan(CAST({col} AS DOUBLE)) THEN 0.0"
+            f" ELSE CAST({col} AS DOUBLE) END) AS {alias}"
+        )
+    return f"AVG(CAST({col} AS DOUBLE)) AS {alias}"
+
+
 def _avgs_sql() -> str:
     return ", ".join(
-        f"AVG(CAST({col} AS DOUBLE)) AS {alias.replace(' ', '_').replace('í', 'i').replace('é', 'e').replace('á', 'a')}"
+        _avg_col(col, alias.replace(' ', '_').replace('í', 'i').replace('é', 'e').replace('á', 'a'))
         for col, alias in AREAS_SQL.items()
     )
 
@@ -33,14 +42,13 @@ def render(svc=None):
     # ── Género por área ────────────────────────────────────────────────────────
     st.markdown("#### 👤 Género por Área de Conocimiento")
     try:
-        avgs = ", ".join(f"AVG(CAST({col} AS DOUBLE)) AS {col}" for col in AREAS_SQL)
+        avgs = ", ".join(_avg_col(col, col) for col in AREAS_SQL)
         df_gen = (
             svc.query_df(
                 f"""
             SELECT estu_genero AS Genero, {avgs}
             FROM {{parquet}}
-            WHERE estu_genero IS NOT NULL
-            AND isnan(punt_ingles) = false AND estu_genero != ''
+            WHERE estu_genero IS NOT NULL AND estu_genero != ''
             GROUP BY estu_genero
             """
             )
@@ -87,16 +95,13 @@ def render(svc=None):
     with left2:
         st.markdown("#### 🏫 Oficial vs No Oficial")
         try:
-            avgs2 = ", ".join(
-                f"AVG(CAST({col} AS DOUBLE)) AS {col}" for col in AREAS_SQL
-            )
+            avgs2 = ", ".join(_avg_col(col, col) for col in AREAS_SQL)
             df_nat = (
                 svc.query_df(
                     f"""
                 SELECT cole_naturaleza AS Tipo, {avgs2}
                 FROM {{parquet}}
-                WHERE cole_naturaleza IS NOT NULL
-                AND isnan(punt_ingles) = false AND cole_naturaleza != ''
+                WHERE cole_naturaleza IS NOT NULL AND cole_naturaleza != ''
                 GROUP BY cole_naturaleza
                 """
                 )
@@ -137,16 +142,13 @@ def render(svc=None):
     with right2:
         st.markdown("#### 🌐 Área Urbana vs Rural")
         try:
-            avgs3 = ", ".join(
-                f"AVG(CAST({col} AS DOUBLE)) AS {col}" for col in AREAS_SQL
-            )
+            avgs3 = ", ".join(_avg_col(col, col) for col in AREAS_SQL)
             df_area = (
                 svc.query_df(
                     f"""
                 SELECT cole_area_ubicacion AS Area, {avgs3}
                 FROM {{parquet}}
-                WHERE cole_area_ubicacion IS NOT NULL
-                AND isnan(punt_ingles) = false AND cole_area_ubicacion != ''
+                WHERE cole_area_ubicacion IS NOT NULL AND cole_area_ubicacion != ''
                 GROUP BY cole_area_ubicacion
                 """
                 )

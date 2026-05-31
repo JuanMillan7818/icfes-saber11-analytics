@@ -11,7 +11,6 @@ Componentes del IPE (escala 0–100, donde 100 = máxima urgencia):
 from __future__ import annotations
 
 import io
-import os
 
 import pandas as pd
 import plotly.express as px
@@ -219,47 +218,26 @@ def _calcular_ipe(_svc, where_geo: str, naturaleza_filter: str):
 # ══════════════════════════════════════════════════════════════════════════════
 
 
-def _get_gemini_key() -> str | None:
-    """Busca la API key en secrets → env var."""
-    if hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
-        key = st.secrets["GEMINI_API_KEY"]
-        if key and key.strip():
-            return key.strip()
-    key = os.getenv("GEMINI_API_KEY", "")
-    return key.strip() if key.strip() else None
-
-
 def _generar_analisis_ia(
     nombre: str, municipio: str, ipe: float, pct_internet: float, pct_educ: float
 ) -> str:
-    key = _get_gemini_key()
-    if not key:
+    from icfes.dashboard.ai.client import generate, get_gemini_key
+    from icfes.dashboard.ai.prompts import priorizacion as pri_prompts
+
+    if not get_gemini_key():
         return (
             "⚠️ **Análisis IA no disponible.** Configura `GEMINI_API_KEY` en "
             "`.streamlit/secrets.toml` para habilitar el diagnóstico automático."
         )
     try:
-        from google import genai
-
-        client = genai.Client(api_key=key)
-        model = "gemini-3.5-flash"
-        prompt = f"""
-Actúa como experto consultor de políticas públicas y educación en Colombia.
-Analiza el caso de la institución educativa y genera un diagnóstico breve con exactamente 2 acciones concretas de intervención:
-
-Institución: {nombre}
-Municipio: {municipio}
-Índice IPE: {ipe:.1f}/100 (100 = máxima urgencia)
-% estudiantes sin internet en hogar: {pct_internet:.1f}%
-% hogares con padres sin educación básica: {pct_educ:.1f}%
-
-Formato de respuesta:
-**Diagnóstico:** (2-3 oraciones)
-**Acción 1:** (concreta, medible)
-**Acción 2:** (concreta, medible)
-"""
-        response = client.models.generate_content(model=model, contents=prompt)
-        return response.text
+        prompt = pri_prompts.build_intervencion_ipe(
+            nombre=nombre,
+            municipio=municipio,
+            ipe=ipe,
+            pct_internet=pct_internet,
+            pct_educ_basica=pct_educ,
+        )
+        return generate(prompt)
     except Exception as e:
         return f"❌ Error al conectar con Gemini: {e}"
 
@@ -635,7 +613,8 @@ def render(svc=None):
     # ── Análisis IA por institución ───────────────────────────────────────────
     st.markdown("#### 🤖 Diagnóstico IA por Institución")
 
-    has_key = _get_gemini_key() is not None
+    from icfes.dashboard.ai.client import get_gemini_key
+    has_key = get_gemini_key() is not None
     if not has_key:
         st.info(
             "🔑 **Análisis IA deshabilitado.** Agrega tu `GEMINI_API_KEY` en "

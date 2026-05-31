@@ -114,15 +114,14 @@ def render(
             '<div class="section-heading">Radar por Área</div>', unsafe_allow_html=True
         )
         try:
-            isNaN = "isnan(punt_ingles) = false"
             df_r = svc.query_df(
                 f"""
                 SELECT AVG(CAST(punt_matematicas AS DOUBLE)) AS mat,
                     AVG(CAST(punt_lectura_critica AS DOUBLE)) AS lec,
                     AVG(CAST(punt_c_naturales AS DOUBLE)) AS cie,
                     AVG(CAST(punt_sociales_ciudadanas AS DOUBLE)) AS soc,
-                    AVG(CAST(punt_ingles AS DOUBLE)) AS ing
-                FROM {{parquet}} {where_clause + "and " + isNaN if where_clause else isNaN}
+                    AVG(CASE WHEN punt_ingles IS NULL OR isnan(CAST(punt_ingles AS DOUBLE)) THEN 0.0 ELSE CAST(punt_ingles AS DOUBLE) END) AS ing
+                FROM {{parquet}} {where_clause}
             """
             )
             if not df_r.empty:

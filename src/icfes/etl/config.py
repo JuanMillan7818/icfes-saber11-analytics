@@ -26,6 +26,7 @@ MAP_ATTR_BASE = {
     "cole_cod_mcpio_ubicacion": "cole_cod_mcpio_ubicacion",
     "cole_naturaleza": "cole_naturaleza",
     "cole_nombre_establecimiento": "cole_nombre_establecimiento",
+    "cole_cod_dane_establecimiento": "cole_cod_dane_establecimiento",
     "cole_nombre_sede": "cole_nombre_sede",
     "desemp_c_naturales": "desemp_c_naturales",
     "desemp_ingles": "desemp_ingles",
