@@ -63,10 +63,15 @@ Streamlit Dashboard       React / Next.js
 │           ├── data/
 │           │   └── mock.py         # Datos de demo / fallback
 │           ├── ai/                 # Módulo de IA Generativa (Gemini)
-│           │   ├── client.py       # Cliente Gemini centralizado + key management
+│           │   ├── client.py       # Cliente Gemini centralizado + key management + generate()
 │           │   └── prompts/
-│           │       ├── perfilamiento.py  # Prompts diagnóstico vocacional
-│           │       └── priorizacion.py  # Prompt análisis IPE
+│           │       ├── __init__.py
+│           │       ├── perfilamiento.py  # build_colectivo() + build_individual()
+│           │       │                     # Secciones: ROL · CONTEXTO APP · DESTINATARIO
+│           │       │                     #            DATOS ANALIZADOS · TIPO RESPUESTA
+│           │       └── priorizacion.py  # build_intervencion_ipe()
+│           │                            # Secciones: ROL · CONTEXTO APP · DESTINATARIO
+│           │                            #            DATOS IPE · ESCALA REFERENCIA · TIPO RESPUESTA
 │           └── pages/
 │               ├── inicio.py       # Pantalla de bienvenida + cards de navegación
 │               ├── analisis.py     # KPIs + tendencia + radar + mapa departamentos
@@ -221,8 +226,11 @@ make install-etl
 | `make dashboard` | Inicia Streamlit |
 | `make api` | Inicia FastAPI (Fase 2) |
 | `make lint` | Análisis estático Ruff |
+| `make lint-fix` | Corrige problemas de linting automáticamente |
+| `make format` | Aplica formato al código |
 | `make test` | Tests unitarios |
-| `uv run python scripts/train_simulador.py` | Entrena modelos ML del simulador |
+| `make clean` | Elimina artefactos temporales y pycaches |
+| `uv run python scripts/train_simulador.py` | Entrena los 3 modelos ML del simulador (Ridge + RF + GBR) y guarda `models/simulador_models.pkl` |
 
 ---
 
@@ -240,6 +248,7 @@ Controlado por `STORAGE_BACKEND` en `.env`:
 
 ## 🔑 Variables de Entorno
 
+**`.env`**
 ```ini
 STORAGE_BACKEND=local
 PARQUET_PATH=files/parquet
@@ -249,10 +258,14 @@ SUPABASE_S3_ENDPOINT=https://xxxx.supabase.co/storage/v1/s3
 SUPABASE_ACCESS_KEY=...
 SUPABASE_SECRET_KEY=...
 SUPABASE_PARQUET_PATH=s3://icfes-parquet/
-
-# IA Gemini
-GEMINI_API_KEY=...  # o en .streamlit/secrets.toml
 ```
+
+**`.streamlit/secrets.toml`** ← requerido para habilitar diagnósticos IA en el dashboard
+```toml
+GEMINI_API_KEY = "AIza..."
+```
+
+> El cliente Gemini busca la key primero en `st.secrets["GEMINI_API_KEY"]` y luego en la variable de entorno `GEMINI_API_KEY`. Si ninguna está configurada, los botones de IA quedan deshabilitados sin romper el resto del dashboard.
 
 ---
 
