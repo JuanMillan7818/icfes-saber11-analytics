@@ -12,6 +12,8 @@ Plataforma modular de analítica educativa sobre microdatos ICFES Saber 11 (~4.3
 
 ## 🗺️ Arquitectura
 
+El proyecto está diseñado bajo principios de **Clean Architecture** estructurado en dos fases:
+
 ```
 Fase 1 (actual)              Fase 2 (futura)
 ─────────────────            ─────────────────
@@ -25,6 +27,29 @@ QueryService              FastAPI endpoints
      │                            │
      ▼                            ▼
 Streamlit Dashboard       React / Next.js
+```
+
+```mermaid
+graph TD
+    subgraph ETL [Capa de Datos]
+        Raw[Planos ICFES .txt/.csv] -->|Pandas & PyArrow| Normal[Normalización de Esquema]
+        Normal -->|Format| Parquet[Archivos .parquet Locales]
+    end
+
+    subgraph Fase1 [Fase 1: Analítica Local]
+        Parquet -->|DuckDB local| QS1[QueryService]
+        QS1 -->|Visualización| Streamlit[Dashboard Streamlit]
+    end
+
+    subgraph Fase2 [Fase 2: Escalabilidad Cloud]
+        Parquet -->|Upload| Cloud[S3 / Supabase Storage]
+        Cloud -->|HTTPFS / DuckDB| QS2[QueryService]
+        QS2 -->|JSON API| FastAPI[Endpoints FastAPI]
+        FastAPI -->|Consumer| React[Frontend React / Next.js]
+    end
+
+    style Fase1 fill:#f9f,stroke:#333,stroke-width:2px
+    style Fase2 fill:#bbf,stroke:#333,stroke-width:2px
 ```
 
 ---
@@ -110,6 +135,7 @@ Streamlit Dashboard       React / Next.js
 ## 📄 Features por Módulo
 
 ### `analisis.py`
+
 - KPIs: total estudiantes, prom. global, matemáticas, lectura, depto líder
 - Tendencia anual del puntaje global con rango Y dinámico
 - Radar de competencias por área (5 áreas)
@@ -117,24 +143,28 @@ Streamlit Dashboard       React / Next.js
 - Filtros globales desde sidebar: año, depto, género, naturaleza
 
 ### `tendencias.py`
+
 - Serie histórica por área (Matemáticas, Lectura, C. Naturales, Sociales, Inglés)
 - Proyección OLS **solo sobre datos post-COVID (2022+)** para evitar distorsión del valle pandémico
 - Métricas del modelo: R², MSE, RMSE, pendiente, nivel de confianza
 - Histograma de distribución del puntaje global
 
 ### `coordinador.py`
+
 - Selector de institución por código DANE (agrupa historial aunque cambie de nombre)
 - Gráfico divergente de brecha por área vs promedio nacional (barras rojo/verde con 0 al centro)
 - Impacto del internet en el hogar: barras por área (Con Internet / Sin Internet / Dato desconocido)
 - Impacto horas de trabajo semanal: barras promedio global por categoría, filtrado por institución
 
 ### `secretario.py`
+
 - Filtros: departamento, municipio, naturaleza (Oficial/No Oficial)
 - Tendencia Oficial vs No Oficial lado a lado con Urbano vs Rural (2 columnas)
 - KPIs rezago post-pandemia: prom. pre/durante/post + caída + índice recuperación
 - Escala Y dinámica en gráficos para amplificar diferencias visibles
 
 ### `simulador.py`
+
 - Selección geográfica en pasos: Nacional → Municipio → Colegio (opcional/requerido)
 - 3 modelos entrenados simultáneamente: Ridge Regression, Random Forest, Gradient Boosting
 - Tarjetas de resultado por modelo — el mejor (mayor R² test) destacado con borde de color y glow
@@ -144,11 +174,13 @@ Streamlit Dashboard       React / Next.js
 - Granularidad de entrenamiento: colegio × municipio × año (vs año global anterior)
 
 ### `priorizacion.py`
+
 - IPE (Índice Priorización Educativa): compuesto de deterioro académico 40% + brecha digital 30% + vulnerabilidad familiar 30%
 - Ranking de instituciones con mayor urgencia de intervención
 - Diagnóstico IA por institución usando Gemini 2.0 Flash
 
 ### `covid.py`
+
 - Timeline visual Pre-COVID (2015–2019) / Pandemia (2020–2021) / Post-COVID (2022+)
 - KPIs: promedio por período, caída pandemia, índice de recuperación
 - Evolución anual del puntaje global con banda roja sombreada en años COVID
@@ -158,6 +190,7 @@ Streamlit Dashboard       React / Next.js
 - Calculadora de recuperación interactiva
 
 ### `perfilamiento.py` _(oculto en menú actual)_
+
 - Clasificación algorítmica en perfiles: STEM, Salud, Humanidades, Admin, Idiomas, Generalista
 - Vista colectiva (institución) e individual (estudiante)
 - Consistencia histórica del perfil dominante (series temporales)
@@ -169,11 +202,11 @@ Streamlit Dashboard       React / Next.js
 
 Cliente Gemini centralizado con prompts estructurados:
 
-| Módulo | Rol | Destinatario | Prompt |
-|---|---|---|---|
-| `perfilamiento` colectivo | Consultor política educativa | Rector / Secretaría | Justificación perfil + 2 recomendaciones institucionales |
-| `perfilamiento` individual | Orientador vocacional | Estudiante grado 11 | ¿Por qué este perfil? + carrera a explorar |
-| `priorizacion` | Consultor políticas públicas | Secretario de Educación | Diagnóstico IPE + 2 acciones de intervención |
+| Módulo                     | Rol                          | Destinatario            | Prompt                                                   |
+| -------------------------- | ---------------------------- | ----------------------- | -------------------------------------------------------- |
+| `perfilamiento` colectivo  | Consultor política educativa | Rector / Secretaría     | Justificación perfil + 2 recomendaciones institucionales |
+| `perfilamiento` individual | Orientador vocacional        | Estudiante grado 11     | ¿Por qué este perfil? + carrera a explorar               |
+| `priorizacion`             | Consultor políticas públicas | Secretario de Educación | Diagnóstico IPE + 2 acciones de intervención             |
 
 Configuración: `GEMINI_API_KEY` en `.streamlit/secrets.toml` o variable de entorno.
 
@@ -183,17 +216,18 @@ Configuración: `GEMINI_API_KEY` en `.streamlit/secrets.toml` o variable de ento
 
 Entrenamiento granular por `colegio × municipio × año` (miles de filas vs ~10 anuales antes).
 
-| Modelo | Descripción |
-|---|---|
-| Ridge Regression | Linear con regularización L2 + StandardScaler |
-| Random Forest | 200 árboles, max_depth=12, min_samples_leaf=5 |
-| Gradient Boosting | 300 estimadores, lr=0.05, max_depth=4 |
+| Modelo            | Descripción                                   |
+| ----------------- | --------------------------------------------- |
+| Ridge Regression  | Linear con regularización L2 + StandardScaler |
+| Random Forest     | 200 árboles, max_depth=12, min_samples_leaf=5 |
+| Gradient Boosting | 300 estimadores, lr=0.05, max_depth=4         |
 
 **Evaluación honesta**: split temporal (test = últimos 2 años) + CV 5-fold sobre train.
 
 **Variables predictoras**: `pct_internet`, `pct_educacion_sup`, `promedio_estrato`
 
 **Entrenar:**
+
 ```bash
 uv run python scripts/train_simulador.py
 ```
@@ -220,16 +254,16 @@ make install-etl
 
 ## 🚀 Comandos
 
-| Comando | Descripción |
-|---|---|
-| `make etl` | Procesa raw → parquet |
-| `make dashboard` | Inicia Streamlit |
-| `make api` | Inicia FastAPI (Fase 2) |
-| `make lint` | Análisis estático Ruff |
-| `make lint-fix` | Corrige problemas de linting automáticamente |
-| `make format` | Aplica formato al código |
-| `make test` | Tests unitarios |
-| `make clean` | Elimina artefactos temporales y pycaches |
+| Comando                                    | Descripción                                                                                      |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| `make etl`                                 | Procesa raw → parquet                                                                            |
+| `make dashboard`                           | Inicia Streamlit                                                                                 |
+| `make api`                                 | Inicia FastAPI (Fase 2)                                                                          |
+| `make lint`                                | Análisis estático Ruff                                                                           |
+| `make lint-fix`                            | Corrige problemas de linting automáticamente                                                     |
+| `make format`                              | Aplica formato al código                                                                         |
+| `make test`                                | Tests unitarios                                                                                  |
+| `make clean`                               | Elimina artefactos temporales y pycaches                                                         |
 | `uv run python scripts/train_simulador.py` | Entrena los 3 modelos ML del simulador (Ridge + RF + GBR) y guarda `models/simulador_models.pkl` |
 
 ---
@@ -238,17 +272,18 @@ make install-etl
 
 Controlado por `STORAGE_BACKEND` en `.env`:
 
-| Backend | Descripción |
-|---|---|
-| `local` (default) | Parquet en `files/parquet/` |
-| `s3` | AWS S3 via DuckDB httpfs |
-| `supabase` | Supabase Storage S3-compatible |
+| Backend           | Descripción                    |
+| ----------------- | ------------------------------ |
+| `local` (default) | Parquet en `files/parquet/`    |
+| `s3`              | AWS S3 via DuckDB httpfs       |
+| `supabase`        | Supabase Storage S3-compatible |
 
 ---
 
 ## 🔑 Variables de Entorno
 
 **`.env`**
+
 ```ini
 STORAGE_BACKEND=local
 PARQUET_PATH=files/parquet
@@ -261,6 +296,7 @@ SUPABASE_PARQUET_PATH=s3://icfes-parquet/
 ```
 
 **`.streamlit/secrets.toml`** ← requerido para habilitar diagnósticos IA en el dashboard
+
 ```toml
 GEMINI_API_KEY = "AIza..."
 ```
