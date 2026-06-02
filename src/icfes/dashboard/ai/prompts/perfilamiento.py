@@ -10,7 +10,7 @@ from __future__ import annotations
 
 _APP_CONTEXT = """
 ## CONTEXTO DE APLICACIÓN
-Eres parte de un tablero analítico llamado **ICFES Analytics**, desarrollado para la
+Eres parte de un tablero analítico llamado **EduMetrics Saber11**, desarrollado para la
 Secretaría de Educación del Departamento del Meta (Colombia). El sistema procesa los
 resultados históricos de la prueba Saber 11 del ICFES (2015–2025) para apoyar la toma
 de decisiones pedagógicas, la orientación vocacional y la planificación de políticas

@@ -303,7 +303,7 @@ def _generar_pdf(filtro: str, df_top5: pd.DataFrame, analisis_ia: str) -> bytes:
     story.append(Paragraph("REPORTE EJECUTIVO DE PRIORIZACIÓN EDUCATIVA", title_style))
     story.append(
         Paragraph(
-            f"Filtro Territorial: {filtro} | Generado automáticamente por ICFES Analytics",
+            f"Filtro Territorial: {filtro} | Generado automáticamente por EduMetrics Saber11",
             subtitle_style,
         )
     )
@@ -394,6 +394,89 @@ def _semaforo_label(ipe: float) -> str:
     elif ipe >= 50:
         return "🟡 Estructural"
     return "🟢 Preventivo"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Análisis de sensibilidad de pesos
+# ══════════════════════════════════════════════════════════════════════════════
+
+_ESCENARIOS_PESOS = {
+    "Base (40/30/30)": (0.400, 0.300, 0.300),
+    "Det+10 (50/25/25)": (0.500, 0.250, 0.250),
+    "Det-10 (30/35/35)": (0.300, 0.350, 0.350),
+    "Dig+10 (35/40/25)": (0.350, 0.400, 0.250),
+    "Dig-10 (45/20/35)": (0.450, 0.200, 0.350),
+    "Vul+10 (35/25/40)": (0.350, 0.250, 0.400),
+    "Vul-10 (45/35/20)": (0.450, 0.350, 0.200),
+    "Iguales (33/33/33)": (0.333, 0.333, 0.333),
+}
+
+
+def _sensibilidad_pesos(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Calcula correlación de Spearman entre el ranking base y cada escenario de pesos.
+    Devuelve DataFrame con columnas: Escenario, w_det, w_dig, w_vul, IPE_medio, r_spearman, Estabilidad.
+    """
+    from scipy.stats import spearmanr  # type: ignore
+
+    base_ipe = (
+        W_DETERIORO * df["Deterioro"]
+        + W_DIGITAL * df["Brecha Digital"]
+        + W_VULNERABILIDAD * df["Vulnerabilidad"]
+    )
+    base_rank = base_ipe.rank(ascending=False)
+
+    rows = []
+    for nombre, (wd, wdg, wv) in _ESCENARIOS_PESOS.items():
+        ipe_alt = (
+            wd * df["Deterioro"]
+            + wdg * df["Brecha Digital"]
+            + wv * df["Vulnerabilidad"]
+        )
+        rank_alt = ipe_alt.rank(ascending=False)
+        r, _ = spearmanr(base_rank, rank_alt)
+        rows.append(
+            {
+                "Escenario": nombre,
+                "w_Deterioro": f"{wd:.0%}",
+                "w_Digital": f"{wdg:.0%}",
+                "w_Vulnerab.": f"{wv:.0%}",
+                "IPE medio": round(ipe_alt.mean(), 1),
+                "r Spearman": round(r, 4),
+                "Estabilidad": (
+                    "🟢 Alta"
+                    if r >= 0.95
+                    else "🟡 Moderada" if r >= 0.85 else "🔴 Baja"
+                ),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def _ranking_top_n_por_escenario(df: pd.DataFrame, n: int = 10) -> pd.DataFrame:
+    """Tabla: top-N instituciones base vs su puesto en cada escenario alternativo."""
+    base_ipe = (
+        W_DETERIORO * df["Deterioro"]
+        + W_DIGITAL * df["Brecha Digital"]
+        + W_VULNERABILIDAD * df["Vulnerabilidad"]
+    )
+    base_order = base_ipe.rank(ascending=False, method="min").astype(int)
+    top_idx = base_ipe.nlargest(n).index
+    top_names = df.loc[top_idx, "Institución"].values
+
+    result = {"Institución": top_names, "Puesto base": range(1, n + 1)}
+    for nombre, (wd, wdg, wv) in _ESCENARIOS_PESOS.items():
+        if "Base" in nombre:
+            continue
+        ipe_alt = (
+            wd * df["Deterioro"]
+            + wdg * df["Brecha Digital"]
+            + wv * df["Vulnerabilidad"]
+        )
+        rank_alt = ipe_alt.rank(ascending=False, method="min").astype(int)
+        result[nombre] = rank_alt.loc[top_idx].values
+
+    return pd.DataFrame(result)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -614,6 +697,7 @@ def render(svc=None):
     st.markdown("#### 🤖 Diagnóstico IA por Institución")
 
     from icfes.dashboard.ai.client import get_gemini_key
+
     has_key = get_gemini_key() is not None
     if not has_key:
         st.info(
@@ -709,3 +793,112 @@ def render(svc=None):
             mime="application/pdf",
             key="btn_pdf_download",
         )
+
+    st.markdown('<div class="grad-divider"></div>', unsafe_allow_html=True)
+
+    # ── Análisis de sensibilidad de pesos ─────────────────────────────────────
+    with st.expander("🔬 Análisis de Sensibilidad de Pesos — ¿Es robusto el IPE?"):
+        st.markdown(
+            """
+            **¿Qué es esto?** Varía cada componente ±10% (manteniendo suma = 100%)
+            y mide si el ranking de instituciones cambia. Si la correlación de Spearman
+            es alta (r ≥ 0.95) en todos los escenarios → los pesos exactos no son críticos
+            → la elección 40/30/30 es justificable como decisión de diseño razonable.
+            """
+        )
+        try:
+            df_sens = _sensibilidad_pesos(df_ipe)
+
+            # ── Tabla de correlaciones ─────────────────────────────────────────
+            st.markdown("##### 📋 Correlación de Spearman vs Ranking Base")
+
+            def _color_r(val):
+                if isinstance(val, float):
+                    if val >= 0.95:
+                        return "color:#34d399;font-weight:700"
+                    if val >= 0.85:
+                        return "color:#facc15;font-weight:600"
+                    return "color:#f43f5e;font-weight:700"
+                return ""
+
+            styled_sens = df_sens.style.map(_color_r, subset=["r Spearman"])
+            st.dataframe(styled_sens, use_container_width=True, hide_index=True)
+
+            # ── Gráfico de barras de r Spearman ───────────────────────────────
+            st.markdown("##### 📊 Estabilidad del Ranking por Escenario")
+            fig_r = go.Figure()
+            colors_r = [
+                "#34d399" if r >= 0.95 else "#facc15" if r >= 0.85 else "#f43f5e"
+                for r in df_sens["r Spearman"]
+            ]
+            fig_r.add_trace(
+                go.Bar(
+                    x=df_sens["Escenario"],
+                    y=df_sens["r Spearman"],
+                    marker_color=colors_r,
+                    marker_line_width=0,
+                    text=[f"{r:.4f}" for r in df_sens["r Spearman"]],
+                    textposition="outside",
+                    textfont=dict(color="#f8fafc", size=11),
+                    hovertemplate="<b>%{x}</b><br>r Spearman: %{y:.4f}<extra></extra>",
+                )
+            )
+            fig_r.add_hline(
+                y=0.95,
+                line_dash="dot",
+                line_color="#34d399",
+                annotation_text="Alta estabilidad (0.95)",
+                annotation_font_color="#34d399",
+            )
+            fig_r.add_hline(
+                y=0.85,
+                line_dash="dot",
+                line_color="#facc15",
+                annotation_text="Estabilidad moderada (0.85)",
+                annotation_font_color="#facc15",
+            )
+            fig_r.update_layout(
+                **dark_layout(
+                    title="",
+                    yaxis=dict(range=[0.7, 1.01], title="r Spearman"),
+                    xaxis=dict(title=""),
+                )
+            )
+            st.plotly_chart(fig_r, use_container_width=True)
+
+            # ── Tabla de ranking top-10 ────────────────────────────────────────
+            st.markdown(
+                "##### 🏆 Variación de Puesto — Top 10 Instituciones (Ranking Base)"
+            )
+            df_top = _ranking_top_n_por_escenario(df_ipe, n=min(10, len(df_ipe)))
+            st.dataframe(df_top, use_container_width=True, hide_index=True)
+
+            # ── Conclusión automática ──────────────────────────────────────────
+            r_min = df_sens["r Spearman"].min()
+            r_mean = df_sens["r Spearman"].mean()
+            if r_min >= 0.95:
+                msg = (
+                    f"✅ **Alta robustez** — correlación mínima {r_min:.4f} (media {r_mean:.4f}). "
+                    "El ranking de instituciones es estable ante variaciones ±10% en los pesos. "
+                    "Los pesos 40/30/30 son una elección de diseño justificable."
+                )
+                st.success(msg)
+            elif r_min >= 0.85:
+                msg = (
+                    f"🟡 **Robustez moderada** — correlación mínima {r_min:.4f} (media {r_mean:.4f}). "
+                    "El ranking varía algo ante cambios de pesos. Se recomienda documentar "
+                    "la justificación de la elección 40/30/30 con referencias bibliográficas."
+                )
+                st.warning(msg)
+            else:
+                msg = (
+                    f"🔴 **Baja robustez** — correlación mínima {r_min:.4f}. "
+                    "El ranking cambia significativamente con distintos pesos. "
+                    "Se recomienda derivar pesos empíricamente (regresión OLS o AHP)."
+                )
+                st.error(msg)
+
+        except Exception as ex:
+            st.warning(
+                f"No se pudo calcular sensibilidad: {ex}. Verifica que scipy esté instalado."
+            )

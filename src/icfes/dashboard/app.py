@@ -27,7 +27,7 @@ logger = get_logger(__name__)
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="ICFES Analytics | Saber 11",
+    page_title="EduMetrics Saber11 | Saber 11",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="collapsed",

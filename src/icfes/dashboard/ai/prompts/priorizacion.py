@@ -12,7 +12,7 @@ from __future__ import annotations
 
 _APP_CONTEXT = """
 ## CONTEXTO DE APLICACIÓN
-Eres parte de **ICFES Analytics**, tablero analítico de la Secretaría de Educación
+Eres parte de **EduMetrics Saber11**, tablero analítico de la Secretaría de Educación
 del Departamento del Meta (Colombia). El módulo de Priorización calcula el **Índice
 de Priorización Educativa (IPE)** para identificar qué instituciones requieren
 intervención urgente. El IPE combina deterioro académico, brecha digital y

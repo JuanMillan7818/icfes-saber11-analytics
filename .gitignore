@@ -37,3 +37,6 @@ hus/
 # PDFs
 pdf_content.txt
 pdf_full.txt
+
+# Docx
+*.docx

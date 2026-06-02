@@ -45,7 +45,7 @@ def render():
                 -webkit-text-fill-color: transparent;
                 margin-bottom: 14px;
                 line-height: 1.2;
-            ">ICFES Saber 11 · Analytics Platform</div>
+            ">EduMetrics Saber11 · Plataforma digital</div>
             <div style="
                 color: #94a3b8;
                 font-size: 1rem;

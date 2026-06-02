@@ -8,28 +8,28 @@ CSS = """
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 
     /* ─── Global Background ─── */
-    .stApp { background: #070d1a; color: #f8fafc; }
-
+    .stApp { background: #0f172a !important; color: #f8fafc; }
+    
     /* ─── ALWAYS SHOW sidebar collapse button ─── */
     [data-testid="collapsedControl"] {
         display: flex !important;
         visibility: visible !important;
         color: #f8fafc !important;
-        background: rgba(56, 189, 248, 0.15) !important;
+        background: rgba(59, 130, 246, 0.15) !important;
         border-radius: 0 8px 8px 0 !important;
-        border: 1px solid rgba(56, 189, 248, 0.3) !important;
+        border: 1px solid rgba(59, 130, 246, 0.3) !important;
         margin-top: 80px !important;
         z-index: 9999 !important;
     }
     [data-testid="collapsedControl"]:hover {
-        background: rgba(56, 189, 248, 0.3) !important;
+        background: rgba(59, 130, 246, 0.3) !important;
     }
 
     /* ─── Sidebar ─── */
     [data-testid="stSidebar"] {
-        background: rgba(10, 18, 35, 0.95) !important;
+        background: rgba(30, 41, 59, 0.95) !important;
         backdrop-filter: blur(20px);
-        border-right: 1px solid rgba(56, 189, 248, 0.15);        
+        border-right: 1px solid rgba(59, 130, 246, 0.15);        
     }
     [data-testid="stSidebar"] * { color: #f8fafc !important; }
     [data-testid="stSidebarNav"] { display: none !important; }
@@ -39,9 +39,9 @@ CSS = """
         position: fixed;
         top: 0; left: 0; right: 0;
         z-index: 9998;
-        background: rgba(7, 13, 26, 0.85);
+        background: rgba(15, 23, 42, 0.85);
         backdrop-filter: blur(20px);
-        border-bottom: 1px solid rgba(56, 189, 248, 0.15);
+        border-bottom: 1px solid rgba(59, 130, 246, 0.15);
         display: flex;
         align-items: center;
         padding: 0 2rem;
@@ -51,9 +51,7 @@ CSS = """
     .navbar-brand {
         font-size: 1.1rem;
         font-weight: 800;
-        background: linear-gradient(90deg, #38bdf8, #818cf8);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        color: #3b82f6;
         margin-right: 2.5rem;
         white-space: nowrap;
         letter-spacing: -0.5px;
@@ -65,8 +63,8 @@ CSS = """
 
     /* ─── KPI Cards ─── */
     div[data-testid="metric-container"] {
-        background: linear-gradient(135deg, rgba(56,189,248,0.07) 0%, rgba(129,140,248,0.04) 100%);
-        border: 1px solid rgba(56, 189, 248, 0.15);
+        background: #1e293b;
+        border: 1px solid rgba(59, 130, 246, 0.15);
         border-radius: 16px;
         padding: 22px 18px !important;
         box-shadow: 0 4px 24px rgba(0,0,0,0.4);
@@ -74,11 +72,11 @@ CSS = """
     }
     div[data-testid="metric-container"]:hover {
         transform: translateY(-4px);
-        box-shadow: 0 12px 36px rgba(56,189,248,0.15);
-        border-color: rgba(56, 189, 248, 0.4);
+        box-shadow: 0 12px 36px rgba(59, 130, 246, 0.15);
+        border-color: rgba(59, 130, 246, 0.4);
     }
     div[data-testid="metric-container"] label {
-        color: #94a3b8 !important;
+        color: #cbd5e1 !important;
         font-size: 0.82rem !important;
         font-weight: 500 !important;
         letter-spacing: 0.05em;
@@ -87,15 +85,13 @@ CSS = """
     div[data-testid="stMetricValue"] > div {
         font-size: 2.1rem !important;
         font-weight: 800 !important;
-        background: linear-gradient(135deg, #38bdf8, #818cf8);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        color: #3b82f6;
     }
 
     /* ─── Section Cards ─── */
     .section-card {
-        background: rgba(255,255,255,0.025);
-        border: 1px solid rgba(255,255,255,0.07);
+        background: #1e293b;
+        border: 1px solid rgba(255,255,255,0.05);
         border-radius: 20px;
         padding: 28px 24px;
         margin-bottom: 24px;
@@ -104,7 +100,7 @@ CSS = """
     .section-title {
         font-size: 1rem;
         font-weight: 700;
-        color: #94a3b8;
+        color: #cbd5e1;
         text-transform: uppercase;
         letter-spacing: 0.1em;
         margin-bottom: 4px;
@@ -120,9 +116,9 @@ CSS = """
     /* ─── Page Hero ─── */
     .hero-badge {
         display: inline-block;
-        background: rgba(56,189,248,0.12);
-        border: 1px solid rgba(56,189,248,0.3);
-        color: #38bdf8;
+        background: rgba(59, 130, 246, 0.12);
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        color: #3b82f6;
         font-size: 0.75rem;
         font-weight: 600;
         padding: 4px 12px;
@@ -135,15 +131,13 @@ CSS = """
         font-size: 2.8rem;
         font-weight: 900;
         letter-spacing: -2px;
-        background: linear-gradient(135deg, #f8fafc 30%, #94a3b8 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        color: #f8fafc;
         line-height: 1.1;
         margin-bottom: 14px;
     }
     .hero-sub {
         font-size: 1.05rem;
-        color: #64748b;
+        color: #cbd5e1;
         font-weight: 400;
         max-width: 540px;
     }
@@ -151,7 +145,7 @@ CSS = """
     /* ─── Divider ─── */
     .grad-divider {
         height: 1px;
-        background: linear-gradient(90deg, transparent 0%, rgba(56,189,248,0.4) 50%, transparent 100%);
+        background: linear-gradient(90deg, transparent 0%, rgba(59, 130, 246, 0.4) 50%, transparent 100%);
         margin: 32px 0;
         border: none;
     }
@@ -159,9 +153,9 @@ CSS = """
     /* ─── Info boxes (mockdata) ─── */
     .info-chip {
         display: inline-block;
-        background: rgba(129,140,248,0.1);
-        border: 1px solid rgba(129,140,248,0.25);
-        color: #818cf8;
+        background: rgba(16, 185, 129, 0.1);
+        border: 1px solid rgba(16, 185, 129, 0.25);
+        color: #10b981;
         font-size: 0.78rem;
         padding: 3px 10px;
         border-radius: 99px;
@@ -170,25 +164,22 @@ CSS = """
     }
 
     /* ─── Tab Styling: Centered Pill ─── */
-    /* DO NOT touch stTabs > div:first-child with flex – breaks panel layout */
     div[data-baseweb="tab-list"] {
         display: inline-flex !important;
         gap: 2px !important;
-        background: rgba(10, 18, 40, 0.88) !important;
+        background: rgba(30, 41, 59, 0.88) !important;
         backdrop-filter: blur(24px) !important;
         -webkit-backdrop-filter: blur(24px) !important;
         border-radius: 99px !important;
         padding: 5px !important;
-        border: 1px solid rgba(56,189,248,0.14) !important;
-        box-shadow: 0 0 40px rgba(56,189,248,0.06), inset 0 1px 0 rgba(255,255,255,0.04) !important;
-        /* Center trick: auto margins + override any stretch */
+        border: 1px solid rgba(59, 130, 246, 0.14) !important;
+        box-shadow: 0 0 40px rgba(59, 130, 246, 0.06), inset 0 1px 0 rgba(255,255,255,0.04) !important;
         margin-left: auto !important;
         margin-right: auto !important;
         max-width: max-content !important;
         width: auto !important;
         min-width: 0 !important;
     }
-    /* Force the row that contains the tab-list to be centered */
     [data-testid="stHorizontalBlock"]:has(div[data-baseweb="tab-list"]),
     div[data-testid="stTabs"] > div > div:first-child {
         display: flex !important;
@@ -201,26 +192,24 @@ CSS = """
         font-weight: 600 !important;
         font-size: 0.865rem !important;
         letter-spacing: 0.015em !important;
-        color: #475569 !important;
+        color: #cbd5e1 !important;
         transition: all 0.3s cubic-bezier(.4,0,.2,1) !important;
         white-space: nowrap !important;
         border: 1px solid transparent !important;
         position: relative !important;
     }
     div[data-baseweb="tab"]:hover {
-        color: #cbd5e1 !important;
+        color: #f8fafc !important;
         background: rgba(255,255,255,0.05) !important;
     }
     div[aria-selected="true"][data-baseweb="tab"] {
-        background: linear-gradient(135deg, rgba(56,189,248,0.18) 0%, rgba(129,140,248,0.18) 100%) !important;
-        color: #f0f9ff !important;
-        border: 1px solid rgba(56,189,248,0.35) !important;
-        box-shadow: 0 0 22px rgba(56,189,248,0.18), inset 0 1px 0 rgba(255,255,255,0.08) !important;
-        text-shadow: 0 0 20px rgba(56,189,248,0.5) !important;
+        background: rgba(59, 130, 246, 0.18) !important;
+        color: #f8fafc !important;
+        border: 1px solid rgba(59, 130, 246, 0.35) !important;
+        box-shadow: 0 0 22px rgba(59, 130, 246, 0.18), inset 0 1px 0 rgba(255,255,255,0.08) !important;
     }
     div[data-baseweb="tab-highlight"] { display: none !important; }
     div[data-baseweb="tab-border"] { display: none !important; }
-    /* Tab panel fade-in */
     div[data-baseweb="tab-panel"] {
         animation: tabFadeIn 0.35s cubic-bezier(.4,0,.2,1);
         width: 100% !important;
@@ -232,12 +221,12 @@ CSS = """
 
     /* ─── Streamlit overrides ─── */
     .stSelectbox > div > div, .stMultiSelect > div > div {
-        background: rgba(255,255,255,0.05) !important;
+        background: #1e293b !important;
         border: 1px solid rgba(255,255,255,0.1) !important;
         border-radius: 10px !important;
         color: #f8fafc !important;
     }
-    .stMarkdown p { color: #94a3b8; }
+    .stMarkdown p { color: #cbd5e1; }
 </style>
 """
 
@@ -253,9 +242,9 @@ def dark_layout(**extra) -> dict:
         font_color="#f8fafc",
         font_family="Inter",
         margin=dict(l=0, r=0, t=30, b=0),
-        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="#94a3b8")),
-        xaxis=dict(showgrid=False, color="#64748b"),
-        yaxis=dict(gridcolor="rgba(255,255,255,0.06)", color="#64748b"),
+        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="#cbd5e1")),
+        xaxis=dict(showgrid=False, color="#cbd5e1"),
+        yaxis=dict(gridcolor="rgba(255,255,255,0.06)", color="#cbd5e1"),
         hovermode="x unified",
     )
     base.update(extra)
