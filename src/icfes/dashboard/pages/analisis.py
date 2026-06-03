@@ -5,7 +5,9 @@ import streamlit as st
 from icfes.dashboard.components.theme import dark_layout
 
 
-def render(svc, where_clause: str, sel_anos, sel_deptos, sel_genero, sel_naturaleza: str):
+def render(
+    svc, where_clause: str, sel_anos, sel_deptos, sel_genero, sel_naturaleza: str
+):
     st.markdown("<br>", unsafe_allow_html=True)
 
     if where_clause:
@@ -67,8 +69,14 @@ def render(svc, where_clause: str, sel_anos, sel_deptos, sel_genero, sel_natural
     # Charts row 1
     c1, c2 = st.columns([3, 2], gap="large")
     with c1:
-        st.markdown('<div class="section-title">Evolución temporal</div>', unsafe_allow_html=True)
-        st.markdown('<div class="section-heading">Tendencia del Puntaje Global</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="section-title">Evolución temporal</div>',
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            '<div class="section-heading">Tendencia del Puntaje Global</div>',
+            unsafe_allow_html=True,
+        )
         try:
             df_trend = svc.query_df(
                 f"""
@@ -77,17 +85,30 @@ def render(svc, where_clause: str, sel_anos, sel_deptos, sel_genero, sel_natural
             """
             )
             if not df_trend.empty:
+                y_min = df_trend["promedio"].min()
+                y_max = df_trend["promedio"].max()
+                padding = max((y_max - y_min) * 0.5, 3.0)
                 fig = px.area(
-                    df_trend, x="ano", y="promedio",
-                    color_discrete_sequence=["#38bdf8"], markers=True,
+                    df_trend,
+                    x="ano",
+                    y="promedio",
+                    color_discrete_sequence=["#38bdf8"],
+                    markers=True,
                 )
-                fig.data[0].fill = "tozeroy"
+                fig.data[0].fill = "tonexty"
                 fig.data[0].fillcolor = "rgba(56,189,248,0.12)"
                 fig.update_traces(
-                    line_width=2.5, marker_size=8,
+                    line_width=2.5,
+                    marker_size=8,
                     hovertemplate="<b>%{x}</b><br>Promedio: %{y:.1f}<extra></extra>",
                 )
                 fig.update_layout(**dark_layout(title=""))
+                fig.update_layout(
+                    yaxis=dict(
+                        range=[y_min - padding, y_max + padding],
+                        title="Puntaje Global Promedio",
+                    )
+                )
                 st.plotly_chart(fig, use_container_width=True)
             else:
                 st.info("Sin datos para el filtro seleccionado.")
@@ -95,8 +116,12 @@ def render(svc, where_clause: str, sel_anos, sel_deptos, sel_genero, sel_natural
             st.error(f"Error: {e}")
 
     with c2:
-        st.markdown('<div class="section-title">Competencias</div>', unsafe_allow_html=True)
-        st.markdown('<div class="section-heading">Radar por Área</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="section-title">Competencias</div>', unsafe_allow_html=True
+        )
+        st.markdown(
+            '<div class="section-heading">Radar por Área</div>', unsafe_allow_html=True
+        )
         try:
             df_r = svc.query_df(
                 f"""
@@ -104,7 +129,7 @@ def render(svc, where_clause: str, sel_anos, sel_deptos, sel_genero, sel_natural
                     AVG(CAST(punt_lectura_critica AS DOUBLE)) AS lec,
                     AVG(CAST(punt_c_naturales AS DOUBLE)) AS cie,
                     AVG(CAST(punt_sociales_ciudadanas AS DOUBLE)) AS soc,
-                    AVG(CAST(punt_ingles AS DOUBLE)) AS ing
+                    AVG(CASE WHEN punt_ingles IS NULL OR isnan(CAST(punt_ingles AS DOUBLE)) THEN 0.0 ELSE CAST(punt_ingles AS DOUBLE) END) AS ing
                 FROM {{parquet}} {where_clause}
             """
             )
@@ -115,7 +140,9 @@ def render(svc, where_clause: str, sel_anos, sel_deptos, sel_genero, sel_natural
                 labels_c = labels + [labels[0]]
                 fig_r = go.Figure(
                     go.Scatterpolar(
-                        r=vals_c, theta=labels_c, fill="toself",
+                        r=vals_c,
+                        theta=labels_c,
+                        fill="toself",
                         fillcolor="rgba(129,140,248,0.2)",
                         line=dict(color="#818cf8", width=2.5),
                         hovertemplate="<b>%{theta}</b><br>%{r:.1f}<extra></extra>",
@@ -125,7 +152,8 @@ def render(svc, where_clause: str, sel_anos, sel_deptos, sel_genero, sel_natural
                     polar=dict(
                         bgcolor="rgba(0,0,0,0)",
                         radialaxis=dict(
-                            visible=True, range=[0, max(vals) + 8],
+                            visible=True,
+                            range=[0, max(vals) + 8],
                             gridcolor="rgba(255,255,255,0.08)",
                             tickfont=dict(color="#64748b"),
                         ),
@@ -147,32 +175,60 @@ def render(svc, where_clause: str, sel_anos, sel_deptos, sel_genero, sel_natural
     st.markdown('<div class="grad-divider"></div>', unsafe_allow_html=True)
 
     # Charts row 2
-    st.markdown('<div class="section-title">Distribución geográfica</div>', unsafe_allow_html=True)
-    st.markdown('<div class="section-heading">Top 10 Departamentos · Promedio Global</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-title">Distribución geográfica</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        '<div class="section-heading">Departamentos · Promedio Global</div>',
+        unsafe_allow_html=True,
+    )
     try:
+        _depto_filter = "cole_depto_ubicacion IS NOT NULL AND cole_depto_ubicacion != ''"
+        _geo_where = (
+            where_clause + f" AND {_depto_filter}"
+            if where_clause
+            else f"WHERE {_depto_filter}"
+        )
         df_geo = svc.query_df(
             f"""
             SELECT cole_depto_ubicacion AS Departamento,
                    AVG(CAST(punt_global AS DOUBLE)) AS Promedio,
                    COUNT(*) AS Estudiantes
-            FROM {{parquet}} {where_clause}
-            GROUP BY cole_depto_ubicacion ORDER BY Promedio DESC LIMIT 10
+            FROM {{parquet}} {_geo_where}
+            GROUP BY cole_depto_ubicacion ORDER BY Promedio DESC
         """
         )
         if not df_geo.empty:
+            chart_h = max(380, len(df_geo) * 26)
+            x_min = df_geo["Promedio"].min()
+            x_max = df_geo["Promedio"].max()
+            x_pad = max((x_max - x_min) * 0.15, 2.0)
+
             fig_b = px.bar(
-                df_geo, x="Promedio", y="Departamento", orientation="h",
-                color="Promedio", color_continuous_scale=["#1e3a5f", "#38bdf8"],
-                hover_data={"Estudiantes": True}, text_auto=".1f",
+                df_geo,
+                x="Promedio",
+                y="Departamento",
+                orientation="h",
+                color="Promedio",
+                color_continuous_scale=["#1e3a5f", "#38bdf8"],
+                hover_data={"Estudiantes": True},
+                text_auto=".1f",
             )
+            fig_b.update_layout(**dark_layout(margin=dict(l=0, r=0, t=10, b=0)))
             fig_b.update_layout(
-                **dark_layout(margin=dict(l=0, r=0, t=10, b=0)),
+                height=chart_h,
                 yaxis={"categoryorder": "total ascending", "title": ""},
-                xaxis=dict(showgrid=False, title="Promedio Global"),
+                xaxis=dict(
+                    showgrid=False,
+                    title="Promedio Global",
+                    range=[x_min - x_pad, x_max + x_pad],
+                ),
                 coloraxis_showscale=False,
             )
             fig_b.update_traces(
-                textfont_color="#f8fafc", textposition="outside",
+                textfont_color="#f8fafc",
+                textposition="outside",
                 hovertemplate="<b>%{y}</b><br>Promedio: %{x:.1f}<br>Estudiantes: %{customdata[0]:,}<extra></extra>",
             )
             st.plotly_chart(fig_b, use_container_width=True)

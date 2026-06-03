@@ -3,7 +3,7 @@
 export
 
 .PHONY: setup install install-etl install-dashboard install-api install-dev \
-        etl dashboard api \
+        etl dashboard api train-model \
         lint lint-fix format test clean
 
 UV     := uv
@@ -47,6 +47,9 @@ dashboard:
 
 api:
 	$(UV) run --extra api uvicorn $(API) --reload --host $(API_HOST) --port $(API_PORT)
+
+train-model:
+	$(UV) run --extra etl --extra dashboard python scripts/train_simulador.py
 
 # ── Quality ───────────────────────────────────────────────────────────────────
 

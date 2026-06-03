@@ -13,7 +13,7 @@ async def lifespan(app: FastAPI):
     _svc.close()
 
 
-app = FastAPI(title="ICFES Analytics API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="EduMetrics Saber11 API", version="1.0.0", lifespan=lifespan)
 
 
 @app.get("/puntajes/promedio-por-ano")

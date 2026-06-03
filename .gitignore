@@ -15,6 +15,7 @@ files/*
 # UV
 uv.lock
 .env
+.streamlit/secrets.toml
 
 # Context file
 .context
@@ -26,3 +27,16 @@ skills-lock.json
 
 # Prompt
 prompt.md
+
+# Models
+models/
+
+# HUS
+hus/
+
+# PDFs
+pdf_content.txt
+pdf_full.txt
+
+# Docx
+*.docx
