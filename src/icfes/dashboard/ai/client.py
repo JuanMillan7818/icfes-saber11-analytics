@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 
-GEMINI_MODEL = "gemini-2.0-flash"
+GEMINI_MODEL = "gemini-3.5-flash"
 
 
 def get_gemini_key() -> str | None:
