@@ -6,27 +6,25 @@
 [![Streamlit](https://img.shields.io/badge/Frontend-Streamlit-red?logo=streamlit&logoColor=white)](https://streamlit.io/)
 [![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 
-Plataforma modular de analítica educativa sobre microdatos ICFES Saber 11 (~4.3 GB, 2015–2025). Arquitectura desacoplada ETL → DuckDB → Streamlit, diseñada para escalar a FastAPI + Supabase en Fase 2.
+Plataforma modular de analítica educativa sobre microdatos ICFES Saber 11 (~4.3 GB, 2015–2025). Arquitectura desacoplada ETL → DuckDB → Streamlit.
 
 ---
 
 ## 🗺️ Arquitectura
 
-El proyecto está diseñado bajo principios de **Clean Architecture** estructurado en dos fases:
+El proyecto está diseñado bajo principios de **Clean Architecture**:
 
-```
-Fase 1 (actual)              Fase 2 (futura)
-─────────────────            ─────────────────
-.txt/.csv (raw)              S3 / Supabase Storage
-     │ PyArrow ETL                │ DuckDB httpfs
-     ▼                            ▼
- .parquet local          QueryService (mismo API)
-     │ DuckDB                     │
-     ▼                            ▼
-QueryService              FastAPI endpoints
-     │                            │
-     ▼                            ▼
-Streamlit Dashboard       React / Next.js
+```text
+.txt/.csv (raw)
+     │ PyArrow ETL
+     ▼
+ .parquet local
+     │ DuckDB
+     ▼
+QueryService
+     │
+     ▼
+Streamlit Dashboard
 ```
 
 ```mermaid
@@ -36,20 +34,10 @@ graph TD
         Normal -->|Format| Parquet[Archivos .parquet Locales]
     end
 
-    subgraph Fase1 [Fase 1: Analítica Local]
-        Parquet -->|DuckDB local| QS1[QueryService]
-        QS1 -->|Visualización| Streamlit[Dashboard Streamlit]
+    subgraph Sistema [Analítica Local]
+        Parquet -->|DuckDB local| QS[QueryService]
+        QS -->|Visualización| Streamlit[Dashboard Streamlit]
     end
-
-    subgraph Fase2 [Fase 2: Escalabilidad Cloud]
-        Parquet -->|Upload| Cloud[S3 / Supabase Storage]
-        Cloud -->|HTTPFS / DuckDB| QS2[QueryService]
-        QS2 -->|JSON API| FastAPI[Endpoints FastAPI]
-        FastAPI -->|Consumer| React[Frontend React / Next.js]
-    end
-
-    style Fase1 fill:#f9f,stroke:#333,stroke-width:2px
-    style Fase2 fill:#bbf,stroke:#333,stroke-width:2px
 ```
 
 ---
@@ -75,9 +63,7 @@ graph TD
 │       │   ├── pipeline.py     # Ejecutor del flujo ETL
 │       │   └── schemas.py      # Esquemas estrictos PyArrow
 │       ├── core/
-│       │   └── query_service.py  # Abstracción DuckDB, backends: local/S3/Supabase
-│       ├── api/
-│       │   └── main.py         # FastAPI stub (Fase 2)
+│       │   └── query_service.py  # Abstracción DuckDB, backend: local
 │       └── dashboard/
 │           ├── app.py          # Orquestador: config + tabs + routing + sidebar
 │           ├── components/
@@ -236,6 +222,14 @@ uv run python scripts/train_simulador.py
 
 ## ⚙️ Instalación
 
+> **⚠️ Requisito de Datos**
+> Es necesario descargar los microdatos oficiales del ICFES (.txt) de 2015 a 2025 y ubicarlos en una carpeta local. Puedes descargarlos desde:
+> - [Google Drive (Backup)](https://drive.google.com/drive/folders/1LvW_FKpdhxRmEc1Lz_zY_fSb_PHyR6LS?usp=sharing)
+> - [SharePoint Oficial ICFES](https://icfesgovco.sharepoint.com/sites/BasesDataIcfes/Documentos%20compartidos/Forms/AllItems.aspx?id=%2Fsites%2FBasesDataIcfes%2FDocumentos%20compartidos%2F01%5FExamen%20Saber%2011%C2%B0%2F01%5FBases%20Nacionales&p=true&ga=1)
+> 
+> Declara la ruta de esta carpeta en la variable de entorno `DATA_PATH_TEXT` en tu `.env`.
+> Estos archivos no están incluidos en el repositorio debido a su tamaño (~4.3 GB).
+
 ```bash
 # Instalar uv
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
@@ -258,7 +252,6 @@ make install-etl
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------ |
 | `make etl`                                 | Procesa raw → parquet                                                                            |
 | `make dashboard`                           | Inicia Streamlit                                                                                 |
-| `make api`                                 | Inicia FastAPI (Fase 2)                                                                          |
 | `make lint`                                | Análisis estático Ruff                                                                           |
 | `make lint-fix`                            | Corrige problemas de linting automáticamente                                                     |
 | `make format`                              | Aplica formato al código                                                                         |
@@ -275,8 +268,6 @@ Controlado por `STORAGE_BACKEND` en `.env`:
 | Backend           | Descripción                    |
 | ----------------- | ------------------------------ |
 | `local` (default) | Parquet en `files/parquet/`    |
-| `s3`              | AWS S3 via DuckDB httpfs       |
-| `supabase`        | Supabase Storage S3-compatible |
 
 ---
 
@@ -285,14 +276,9 @@ Controlado por `STORAGE_BACKEND` en `.env`:
 **`.env`**
 
 ```ini
+DATA_PATH_TEXT=ruta/absoluta/a/tus/datos/icfes/txt
 STORAGE_BACKEND=local
 PARQUET_PATH=files/parquet
-
-# Supabase (Fase 2)
-SUPABASE_S3_ENDPOINT=https://xxxx.supabase.co/storage/v1/s3
-SUPABASE_ACCESS_KEY=...
-SUPABASE_SECRET_KEY=...
-SUPABASE_PARQUET_PATH=s3://icfes-parquet/
 ```
 
 **`.streamlit/secrets.toml`** ← requerido para habilitar diagnósticos IA en el dashboard
@@ -311,3 +297,36 @@ GEMINI_API_KEY = "AIza..."
 - **`ano` como float**: DuckDB puede retornar años como `2015.0`. Todas las queries usan `CAST(ano AS INTEGER)`.
 - **Filtros SQL**: `where_clause` siempre comienza con `WHERE` cuando tiene contenido. Condiciones adicionales se encadenan con `AND`.
 - **Código DANE**: `coordinador.py` filtra instituciones por `cole_cod_dane_establecimiento` para agrupar correctamente aunque cambien de nombre.
+
+---
+
+## 🚀 Visión Fase 2 (Futuro Desarrollo)
+
+El objetivo es continuar el desarrollo para llevar la arquitectura a la nube, exponiendo los datos a través de una API para integrarlos en un frontend moderno.
+
+**Arquitectura Propuesta:**
+```text
+S3 / Supabase Storage
+     │ DuckDB httpfs
+     ▼
+QueryService (mismo API)
+     │
+     ▼
+FastAPI endpoints
+     │
+     ▼
+React / Next.js Frontend
+```
+
+**Backends de Datos Soportados en Fase 2:**
+- `s3`: AWS S3 via DuckDB httpfs
+- `supabase`: Supabase Storage S3-compatible
+
+**Variables de Entorno para Fase 2:**
+```ini
+# Supabase
+SUPABASE_S3_ENDPOINT=https://xxxx.supabase.co/storage/v1/s3
+SUPABASE_ACCESS_KEY=...
+SUPABASE_SECRET_KEY=...
+SUPABASE_PARQUET_PATH=s3://icfes-parquet/
+```
